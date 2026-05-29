@@ -49,7 +49,9 @@ function App() {
     const data =
       await response.json();
 
-    setHistory(data.items);
+    setHistory(data);
+
+    console.log("HISTORY RESPONSE:", data);
 
   } catch (error) {
 
