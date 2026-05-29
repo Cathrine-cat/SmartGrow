@@ -49,7 +49,7 @@ function App() {
     const data =
       await response.json();
 
-    setHistory(data);
+    setHistory(data.items);
 
   } catch (error) {
 
