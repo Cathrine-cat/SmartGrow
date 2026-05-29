@@ -17,22 +17,22 @@ function Dashboard({ data, history }) {
       <div className="card">
 
         <p>
-          Temperature:
+          🌡️ Temperature:
           {data.temperature} °C
         </p>
 
         <p>
-          Humidity:
+          💧 Humidity:
           {data.humidity} %
         </p>
 
         <p>
-          Soil Moisture:
+          🌱 Soil Moisture:
           {data.soil}
         </p>
 
         <p>
-          Light:
+          🌞 Light:
           {data.light}
         </p>
 
