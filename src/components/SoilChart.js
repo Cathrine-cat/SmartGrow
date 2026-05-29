@@ -36,6 +36,12 @@ function SoilChart({ history }) {
     return <p>No chart data</p>;
   }
 
+  const soilMap = {
+  dry: 0,
+  moist: 50,
+  wet: 100
+  };
+
   const chartData = {
 
     labels:
@@ -50,7 +56,7 @@ function SoilChart({ history }) {
 
         data:
           history.map(
-            item => item.soil
+            item => (soilMap[item.soil] ?? 0)
           ),
 
         borderColor: "green",
