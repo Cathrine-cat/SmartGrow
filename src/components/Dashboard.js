@@ -1,6 +1,6 @@
 import SoilChart from "./SoilChart";
 
-function Dashboard({ data, history }) {
+function Dashboard({ data, history, activatePump }) {
 
   if (!data) {
     return <h1>Loading...</h1>;
@@ -38,7 +38,7 @@ function Dashboard({ data, history }) {
 
       </div>
 
-      <button>
+      <button onClick={activatePump}>
         Activate Pump
       </button>
 

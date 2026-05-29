@@ -76,10 +76,48 @@ function App() {
 
   }, []);
 
+  const CONTROL_URL =
+  "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com/control";
+
+async function activatePump() {
+
+  try {
+
+    const response = await fetch(
+      CONTROL_URL,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          command: "ON"
+        })
+      }
+    );
+
+    const result =
+      await response.json();
+
+    console.log(result);
+
+    alert("Pump activated");
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error activating pump");
+  }
+}
+
   return (
     <Dashboard
       data={sensorData}
       history={history}
+      activatePump={activatePump}
     />
   );
 }
