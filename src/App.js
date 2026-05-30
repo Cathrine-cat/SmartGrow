@@ -106,21 +106,23 @@ async function fetchPumpStatus() {
 }, []);
 
 useEffect(() => {
+  if (!pumpStatus) return;
+
   const interval = setInterval(() => {
-    if (pumpStatus && pumpStatus.status === "ON") {
-
-      const start = new Date(pumpStatus.startTime);
-      const elapsed = (Date.now() - start.getTime()) / 1000;
-
-      const left = Math.max(
-        0,
-        Math.round(pumpStatus.duration - elapsed)
-      );
-
-      setRemaining(left);
-    } else {
+    if (pumpStatus.status !== "ON" || !pumpStatus.startTime) {
       setRemaining(0);
+      return;
     }
+
+    const start = new Date(pumpStatus.startTime);
+    const elapsed = (Date.now() - start.getTime()) / 1000;
+
+    const left = Math.max(
+      0,
+      Math.round(pumpStatus.duration - elapsed)
+    );
+
+    setRemaining(left);
   }, 1000);
 
   return () => clearInterval(interval);

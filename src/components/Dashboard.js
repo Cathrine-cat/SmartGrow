@@ -64,7 +64,7 @@ function Dashboard({ data,
 
       <p>Duration: {pumpStatus.duration}s</p>
 
-      {pumpStatus.isActuallyOn && remaining > 0 && (
+     {pumpStatus.isActuallyOn && remaining > 0 && (
         <p>Remaining: {remaining}s</p>
       )}
 
