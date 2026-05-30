@@ -1,6 +1,12 @@
 import SoilChart from "./SoilChart";
+import SettingsPanel from "./SettingsPanel";
 
-function Dashboard({ data, history, activatePump }) {
+function Dashboard({ data,
+  history,
+  activatePump,
+  settings,
+  setSettings,
+  saveSettings }) {
 
   if (!data) {
     return <h1>Loading...</h1>;
@@ -41,6 +47,15 @@ function Dashboard({ data, history, activatePump }) {
       <button onClick={activatePump}>
         Activate Pump
       </button>
+
+      <SettingsPanel
+      settings={settings}
+
+      setSettings={setSettings}
+
+      saveSettings={
+        saveSettings}
+      />
 
       <div style={{ width: "700px", margin: "50px auto" }}>
         <SoilChart history={history} />
