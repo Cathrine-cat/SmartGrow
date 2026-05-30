@@ -10,6 +10,9 @@ function App() {
 
   const [settings, setSettings] =useState({autoMode: false,minIntervalHours: 24, wateringDuration: 10});
 
+  const [wateringHistory,setWateringHistory] = useState([]);
+  const [manualDuration, setManualDuration] =useState("");
+
   const BASE_URL =
   "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
 
@@ -79,28 +82,39 @@ async function fetchSettings() {
 
 
 async function activatePump() {
+
+  const duration =
+    manualDuration === ""
+      ? settings?.wateringDuration || 10
+      : Number(manualDuration);
+
   try {
 
     const response = await fetch(
       CONTROL_URL,
       {
         method: "POST",
+
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type":
+            "application/json"
         },
+
         body: JSON.stringify({
-          command: "ON"
+          command: "ON",
+          duration: duration,
+          source: "manual"
         })
       }
     );
 
-    const result =
+  const result =
       await response.json();
     console.log(result);
-    alert("Pump activated");
+    alert("Command sent");
   } catch (error) {
     console.error(error);
-    alert("Error activating pump");
+    alert("Error sending command");
   }
 }
 
@@ -142,6 +156,8 @@ async function saveSettings() {
 
   saveSettings={
     saveSettings}
+    manualDuration={manualDuration}
+    setManualDuration={setManualDuration}
     />
   );
 }

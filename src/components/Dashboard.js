@@ -6,7 +6,9 @@ function Dashboard({ data,
   activatePump,
   settings,
   setSettings,
-  saveSettings }) {
+  saveSettings,
+  manualDuration,
+  setManualDuration }) {
 
   if (!data) {
     return <h1>Loading...</h1>;
@@ -44,9 +46,22 @@ function Dashboard({ data,
 
       </div>
 
-      <button onClick={activatePump}>
-        Activate Pump
-      </button>
+    <div className="card">
+        <h3>Manual Watering</h3>
+
+        <input
+          type="number"
+          placeholder="Duration (seconds)"
+          value={manualDuration}
+          onChange={(e) =>
+            setManualDuration(e.target.value)
+          }
+        />
+
+        <button onClick={activatePump}>
+          Activate Pump
+        </button>
+      </div>
 
       <SettingsPanel
       settings={settings}
