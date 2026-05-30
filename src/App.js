@@ -13,6 +13,10 @@ function App() {
   const [wateringHistory,setWateringHistory] = useState([]);
   const [manualDuration, setManualDuration] =useState("");
 
+  const [pumpStatus,setPumpStatus] = useState(null);
+
+  const [remaining,setRemaining] =useState(0);
+
   const BASE_URL =
   "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
 
@@ -26,7 +30,12 @@ function App() {
     `${BASE_URL}/control`;
 
   const SETTINGS_URL =
-    `${BASE_URL}/settings`;  
+    `${BASE_URL}/settings`;
+
+  const PUMP_STATUS_URL =
+ `${BASE_URL}/pumpStatus`;
+
+ const PUMP_TIMEOUT_SECONDS = 60;
   
 
   async function fetchData() {
@@ -66,19 +75,56 @@ async function fetchSettings() {
   }
 }
 
+async function fetchPumpStatus() {
+  try {
+    const response =
+      await fetch(
+        PUMP_STATUS_URL
+      );
+    const data =
+      await response.json();
+    setPumpStatus(data);
+  } catch(error) {
+    console.error(error);
+  }
+}
+
   useEffect(() => {
   const load = async () => {
     await fetchData();
     await fetchHistory();
     await fetchSettings();
+    await fetchPumpStatus();
   };
   load();
   const interval = setInterval(() => {
     fetchData();
     fetchHistory();
+    fetchPumpStatus();
   }, 5000);
   return () => clearInterval(interval);
 }, []);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    if (pumpStatus && pumpStatus.status === "ON") {
+
+      const start = new Date(pumpStatus.startTime);
+      const elapsed = (Date.now() - start.getTime()) / 1000;
+
+      const left = Math.max(
+        0,
+        Math.round(pumpStatus.duration - elapsed)
+      );
+
+      setRemaining(left);
+    } else {
+      setRemaining(0);
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [pumpStatus]);
 
 
 async function activatePump() {
@@ -145,6 +191,29 @@ async function saveSettings() {
   }
 }
 
+function getSafePumpStatus() {
+  if (!pumpStatus) return null;
+
+  const lastUpdate =
+    pumpStatus.startTime ||
+    pumpStatus.timestamp;
+
+  if (!lastUpdate) return pumpStatus;
+
+  const ageSeconds =
+    (Date.now() - new Date(lastUpdate).getTime()) / 1000;
+
+  const isStale = ageSeconds > PUMP_TIMEOUT_SECONDS;
+
+  return {
+    ...pumpStatus,
+    isActuallyOn:
+      pumpStatus.status === "ON" && !isStale,
+  };
+}
+
+const safePumpStatus = getSafePumpStatus();
+
   return (
     <Dashboard
      data={sensorData}
@@ -154,10 +223,13 @@ async function saveSettings() {
 
   setSettings={setSettings}
 
-  saveSettings={
+   saveSettings={
     saveSettings}
     manualDuration={manualDuration}
     setManualDuration={setManualDuration}
+
+    pumpStatus={safePumpStatus}
+     remaining={remaining}
     />
   );
 }

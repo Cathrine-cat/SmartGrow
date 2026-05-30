@@ -8,7 +8,9 @@ function Dashboard({ data,
   setSettings,
   saveSettings,
   manualDuration,
-  setManualDuration }) {
+  setManualDuration,
+  pumpStatus,
+ remaining }) {
 
   if (!data) {
     return <h1>Loading...</h1>;
@@ -45,6 +47,41 @@ function Dashboard({ data,
         </p>
 
       </div>
+
+ <div className="card">
+  <h3>Pump Status</h3>
+
+  {!pumpStatus ? (
+    <p>No pump data</p>
+  ) : (
+    <>
+      <p>
+        Status:{" "}
+        {pumpStatus.isActuallyOn ? "ON" : "OFF"}
+      </p>
+
+      <p>Source: {pumpStatus.source}</p>
+
+      <p>Duration: {pumpStatus.duration}s</p>
+
+      {pumpStatus.isActuallyOn && remaining > 0 && (
+        <p>Remaining: {remaining}s</p>
+      )}
+
+      {pumpStatus.isActuallyOn && (
+        <p style={{ color: "green" }}>
+          🟢 Pump currently running
+        </p>
+      )}
+
+      {!pumpStatus.isActuallyOn && (
+        <p style={{ color: "gray" }}>
+          ⚪ Pump idle
+        </p>
+      )}
+    </>
+  )}
+</div>
 
     <div className="card">
         <h3>Manual Watering</h3>
