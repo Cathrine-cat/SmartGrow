@@ -8,7 +8,7 @@ function App() {
 
   const [history, setHistory] = useState([]);
 
-  const [settings, setSettings] =useState({autoMode: false,minIntervalHours: 24, wateringDuration: 10});
+  const [settings, setSettings] =useState({autoMode: false,minIntervalHours: 24, wateringDuration: 10, thresholdMoisture: 30});
 
   const [wateringHistory,setWateringHistory] = useState([]);
   const [manualDuration, setManualDuration] =useState("");

@@ -108,6 +108,28 @@ function SettingsPanel({
       <br />
       <br />
 
+      <label>
+        Soil Moisture Threshold (%)
+
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={settings.thresholdMoisture}
+          onChange={(e) =>
+            setSettings({
+              ...settings,
+              thresholdMoisture: Number(e.target.value)
+            })
+          }
+        />
+
+      <span>{settings.thresholdMoisture}%</span>
+      </label>
+
+      <br />
+      <br />
+
       <button
         onClick={saveSettings}
       >
