@@ -1,43 +1,62 @@
-body {
-
-  font-family: Arial;
-  background: #f4f4f4;
-  margin: 0;
-  padding: 0;
+.dashboard {
+  padding: 20px;
+  background: #f5f7fa;
+  min-height: 100vh;
 }
 
-.container {
-
+.title {
   text-align: center;
-  padding: 40px;
+  margin-bottom: 20px;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Each column stacks items vertically */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Card styling */
 .card {
-
   background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
 
-  padding: 30px;
+/* Make charts feel bigger and cleaner */
+.chart {
+  height: 380px;
+}
 
-  width: 350px;
-
-  margin: auto;
-
-  border-radius: 10px;
-
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+/* Inputs + buttons */
+input {
+  padding: 8px;
+  margin-right: 10px;
 }
 
 button {
-
-  margin-top: 20px;
-
-  padding: 10px 20px;
-
-  border: none;
-
-  border-radius: 5px;
-
+  padding: 8px 12px;
   cursor: pointer;
+}
 
-  font-size: 16px;
+.card:hover {
+  transform: translateY(-2px);
+  transition: 0.2s;
+}
+
+.chart-container {
+  width: 700px;
+  margin: 0px auto 10px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }

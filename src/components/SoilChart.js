@@ -43,28 +43,26 @@ function SoilChart({ history }) {
   };
 
   const chartData = {
+  labels: history.map(item =>
+    new Date(item.timestamp).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
+  ),
 
-    labels:
-      history.map(
-        item => item.timestamp
+  datasets: [
+    {
+      label: "Soil Moisture",
+      data: history.map(
+        item => (soilMap[item.soil] ?? 0)
       ),
-
-    datasets: [
-      {
-
-        label: "Soil Moisture",
-
-        data:
-          history.map(
-            item => (soilMap[item.soil] ?? 0)
-          ),
-
-        borderColor: "green",
-
-        tension: 0.3
-      }
-    ]
-  };
+      borderColor: "green",
+      tension: 0.3
+    }
+  ]
+};
 
   return <Line data={chartData} />;
 }
