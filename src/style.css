@@ -1,6 +1,6 @@
 .dashboard {
   padding: 20px;
-  background: #f5f7fa;
+  background: linear-gradient(180deg, #f1f8e9, #e8f5e9);
   min-height: 100vh;
 }
 
@@ -25,10 +25,11 @@
 
 /* Card styling */
 .card {
-  background: white;
+  background: #ffffff;
   padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+  border-left: 4px solid #43a047;
 }
 
 /* Make charts feel bigger and cleaner */
@@ -43,8 +44,14 @@ input {
 }
 
 button {
-  padding: 8px 12px;
-  cursor: pointer;
+  background: #43a047;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+button:hover {
+  background: #2e7d32;
 }
 
 .card:hover {
