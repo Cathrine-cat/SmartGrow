@@ -35,6 +35,9 @@ function App() {
   const PUMP_STATUS_URL =
  `${BASE_URL}/pumpStatus`;
 
+ const WATERING_HISTORY_URL =
+  `${BASE_URL}/watering-history`;
+
  const PUMP_TIMEOUT_SECONDS = 60;
   
 
@@ -75,6 +78,21 @@ async function fetchSettings() {
   }
 }
 
+async function fetchWateringHistory() {
+  try {
+    const response =
+      await fetch(WATERING_HISTORY_URL);
+
+    const data =
+      await response.json();
+
+    setWateringHistory(data);
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 async function fetchPumpStatus() {
   try {
     const response =
@@ -95,12 +113,14 @@ async function fetchPumpStatus() {
     await fetchHistory();
     await fetchSettings();
     await fetchPumpStatus();
+    await fetchWateringHistory();
   };
   load();
   const interval = setInterval(() => {
     fetchData();
     fetchHistory();
     fetchPumpStatus();
+    fetchWateringHistory();
   }, 5000);
   return () => clearInterval(interval);
 }, []);
@@ -222,6 +242,7 @@ const safePumpStatus = getSafePumpStatus();
   history={history}
   activatePump={activatePump}
   settings={settings}
+  wateringHistory={wateringHistory}
 
   setSettings={setSettings}
 

@@ -1,8 +1,10 @@
 import SoilChart from "./SoilChart";
 import SettingsPanel from "./SettingsPanel";
+import WateringHistoryChart from "./WateringHistoryChart";
 
 function Dashboard({ data,
   history,
+  wateringHistory,
   activatePump,
   settings,
   setSettings,
@@ -110,7 +112,17 @@ function Dashboard({ data,
       />
 
       <div style={{ width: "700px", margin: "50px auto" }}>
+
+        <h2>Soil Moisture History</h2>
+
         <SoilChart history={history} />
+      </div>
+
+      <div style={{width: "700px",margin: "50px auto"}}
+>
+        <h2>Watering History</h2>
+
+        <WateringHistoryChart history={wateringHistory}/>
       </div>
 
     </div>
