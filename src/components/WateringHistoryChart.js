@@ -11,7 +11,9 @@ import {
 function WateringHistoryChart({ history }) {
 
   // Convert backend data into time-series format
-  const chartData = history.map(item => ({
+  const chartData = [...history]
+  .reverse()
+  .map(item => ({
     time: new Date(item.timestamp).toLocaleString("en-GB", {
       day: "2-digit",
       month: "2-digit",

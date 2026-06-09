@@ -56,7 +56,7 @@ function SoilChart({ history }) {
     {
       label: "Soil Moisture",
       data: history.map(
-        item => (soilMap[item.soil] ?? 0)
+        item => item.soil
       ),
       borderColor: "green",
       tension: 0.3
