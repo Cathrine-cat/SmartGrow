@@ -36,12 +36,6 @@ function SoilChart({ history }) {
     return <p>No chart data</p>;
   }
 
-  const soilMap = {
-  dry: 0,
-  moist: 50,
-  wet: 100
-  };
-
   const chartData = {
   labels: history.map(item =>
     new Date(item.timestamp).toLocaleString("en-GB", {
