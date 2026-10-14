@@ -10,6 +10,7 @@ const emptyState = {
 export default function Profile() {
   const { user, updateProfile, refreshProfile } = useAuth();
   const [form, setForm] = useState(emptyState);
+  const [databaseProfile, setDatabaseProfile] = useState(null);
   const [status, setStatus] = useState("");
   const [statusType, setStatusType] = useState("success");
   const [saving, setSaving] = useState(false);
@@ -21,6 +22,16 @@ export default function Profile() {
     let cancelled = false;
     setLoadingProfile(true);
     refreshProfile()
+      .then((profile) => {
+        if (!cancelled) {
+          setDatabaseProfile(profile);
+          setForm({
+            name: profile.name || "",
+            email: profile.email || "",
+            phone: profile.phone || "",
+          });
+        }
+      })
       .catch((error) => {
         if (!cancelled) {
           setStatusType("error");
@@ -34,16 +45,6 @@ export default function Profile() {
     return () => { cancelled = true; };
   }, [user?.sub, refreshProfile]);
 
-  useEffect(() => {
-    if (user) {
-      setForm({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-      });
-    }
-  }, [user]);
-
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
@@ -55,11 +56,16 @@ export default function Profile() {
     setSaving(true);
 
     try {
-      await updateProfile({
+      const updatedProfile = await updateProfile({
         name: form.name,
         phone: form.phone,
       });
-
+      setDatabaseProfile(updatedProfile);
+      setForm({
+        name: updatedProfile.name || "",
+        email: updatedProfile.email || user?.email || "",
+        phone: updatedProfile.phone || "",
+      });
       setStatus("Your profile was updated successfully.");
     } catch (error) {
       setStatusType("error");
@@ -124,10 +130,14 @@ export default function Profile() {
         <div className="info-panel">
           <h3>Account summary</h3>
           <ul className="settings-list">
-            <li>Name: {user?.name || "Not set"}</li>
+            <li>Name: {loadingProfile ? "Loading..." : (databaseProfile?.name || "Not set")}</li>
             <li>Email: {user?.email || "Not set"}</li>
-            <li>Phone: {user?.phone || "Not set"}</li>
-            <li>Linked devices: {loadingProfile ? "Loading..." : (user?.devices?.length ?? 0)}</li>
+            <li>Phone: {loadingProfile ? "Loading..." : (databaseProfile?.phone || "Not set")}</li>
+            <li>Linked devices: {loadingProfile
+              ? "Loading..."
+              : databaseProfile?.devicesLoaded === false
+                ? "Unavailable"
+                : (databaseProfile?.devices?.length ?? 0)}</li>
           </ul>
         </div>
       </div>
