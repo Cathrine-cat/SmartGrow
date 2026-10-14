@@ -485,6 +485,174 @@ button:hover {
   box-shadow: 0 18px 26px rgba(17, 40, 30, 0.06);
 }
 
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 18px;
+  background: linear-gradient(180deg, #f5fbf7 0%, #edf7ee 100%);
+}
+
+.auth-card {
+  width: min(100%, 480px);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(18, 62, 43, 0.08);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+.back-link {
+  display: inline-block;
+  color: var(--green-700);
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.auth-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  background: rgba(58, 161, 102, 0.06);
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 18px;
+}
+
+.toggle {
+  border: none;
+  background: transparent;
+  color: var(--neutral-700);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle.active {
+  background: white;
+  color: var(--green-900);
+  box-shadow: 0 8px 20px rgba(17, 40, 30, 0.08);
+}
+
+.auth-card h1 {
+  margin: 0;
+  color: var(--green-900);
+}
+
+.auth-subtitle {
+  color: var(--neutral-700);
+  margin: 10px 0 22px;
+}
+
+.auth-form,
+.profile-form,
+.device-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-form label,
+.profile-form label,
+.device-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--neutral-700);
+  font-weight: 600;
+}
+
+.auth-form input,
+.profile-form input,
+.device-form input {
+  width: 100%;
+  margin: 0;
+}
+
+.error-box {
+  margin: 0;
+  color: #b42318;
+  background: #fff1f2;
+  border: 1px solid rgba(180, 35, 24, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.success-text {
+  margin: 0;
+  color: var(--green-700);
+  font-weight: 600;
+}
+
+.submit-button {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.personal-home .page-header {
+  align-items: center;
+}
+
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.quick-links a {
+  color: var(--green-800);
+  font-weight: 700;
+}
+
+.profile-layout {
+  align-items: start;
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(18, 62, 43, 0.08);
+  border-radius: 16px;
+}
+
+.device-card p {
+  margin: 6px 0 0;
+  color: var(--neutral-700);
+}
+
+.active-device {
+  border-color: rgba(58, 161, 102, 0.4);
+  background: rgba(58, 161, 102, 0.05);
+}
+
+.device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ghost-button {
+  background: transparent;
+  color: var(--green-900);
+  border: 1px solid rgba(18, 62, 43, 0.12);
+}
+
+.device-link {
+  margin-top: 18px;
+}
+
 @media (max-width: 900px) {
   .hero-section,
   .benefits-section,

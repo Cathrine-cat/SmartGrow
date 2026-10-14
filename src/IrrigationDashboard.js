@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import Dashboard from "./components/Dashboard";
+import { useAuth } from "./auth/AuthContext";
 
 function App() {
+  const { selectedDeviceId, getAccessToken } = useAuth();
 
   const [sensorData, setSensorData] = useState(null);
 
@@ -39,33 +41,40 @@ function App() {
   `${BASE_URL}/watering-history`;
 
  const PUMP_TIMEOUT_SECONDS = 60;
+
+  const authorizedFetch = useCallback(async (url, options = {}) => {
+    const token = await getAccessToken();
+    const headers = new Headers(options.headers || {});
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return fetch(url, { ...options, headers });
+  }, [getAccessToken]);
   
 
   const fetchData = useCallback(async () => {
     try {
-      const response =  await fetch(API_URL);
+      const response =  await authorizedFetch(API_URL);
       const data = await response.json();
       console.log("LATEST:", data);
       setSensorData(data);
     } catch (error) {
       console.error("Latest data error:",error );
     }
-  }, [API_URL]);
+  }, [API_URL, authorizedFetch]);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const response = await fetch(HISTORY_URL);
+      const response = await authorizedFetch(HISTORY_URL);
       const data = await response.json();
       setHistory(data);
       console.log("HISTORY RESPONSE:", data);
     } catch (error) {
       console.error(error);
     }
-  }, [HISTORY_URL]);
+  }, [HISTORY_URL, authorizedFetch]);
 
   const fetchSettings = useCallback(async () => {
     try {
-      const response =await fetch(SETTINGS_URL);
+      const response =await authorizedFetch(SETTINGS_URL);
       const data =await response.json();
       console.log("SETTINGS:",data);
       setSettings(data);
@@ -75,27 +84,27 @@ function App() {
         error
       );
     }
-  }, [SETTINGS_URL]);
+  }, [SETTINGS_URL, authorizedFetch]);
 
   const fetchWateringHistory = useCallback(async () => {
     try {
-      const response = await fetch(WATERING_HISTORY_URL);
+      const response = await authorizedFetch(WATERING_HISTORY_URL);
       const data = await response.json();
       setWateringHistory(data);
     } catch (error) {
       console.error(error);
     }
-  }, [WATERING_HISTORY_URL]);
+  }, [WATERING_HISTORY_URL, authorizedFetch]);
 
   const fetchPumpStatus = useCallback(async () => {
     try {
-      const response = await fetch(PUMP_STATUS_URL);
+      const response = await authorizedFetch(PUMP_STATUS_URL);
       const data = await response.json();
       setPumpStatus(data);
     } catch(error) {
       console.error(error);
     }
-  }, [PUMP_STATUS_URL]);
+  }, [PUMP_STATUS_URL, authorizedFetch]);
 
   useEffect(() => {
     const load = async () => {
@@ -148,7 +157,7 @@ async function activatePump() {
 
   try {
 
-    const response = await fetch(
+    const response = await authorizedFetch(
       CONTROL_URL,
       {
         method: "POST",
@@ -178,7 +187,7 @@ async function activatePump() {
 
 async function saveSettings() {
   try {
-    const response =await fetch(SETTINGS_URL,
+    const response =await authorizedFetch(SETTINGS_URL,
         {
           method: "POST",
           headers: {
@@ -227,23 +236,28 @@ function getSafePumpStatus() {
 const safePumpStatus = getSafePumpStatus();
 
   return (
-    <Dashboard
-     data={sensorData}
-  history={history}
-  activatePump={activatePump}
-  settings={settings}
-  wateringHistory={wateringHistory}
+    <>
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Device dashboard</p>
+          <h1>{selectedDeviceId ? `Device ${selectedDeviceId}` : "Smart Irrigation Dashboard"}</h1>
+        </div>
+      </div>
 
-  setSettings={setSettings}
-
-   saveSettings={
-    saveSettings}
-    manualDuration={manualDuration}
-    setManualDuration={setManualDuration}
-
-    pumpStatus={safePumpStatus}
-     remaining={remaining}
-    />
+      <Dashboard
+        data={sensorData}
+        history={history}
+        activatePump={activatePump}
+        settings={settings}
+        wateringHistory={wateringHistory}
+        setSettings={setSettings}
+        saveSettings={saveSettings}
+        manualDuration={manualDuration}
+        setManualDuration={setManualDuration}
+        pumpStatus={safePumpStatus}
+        remaining={remaining}
+      />
+    </>
   );
 }
 

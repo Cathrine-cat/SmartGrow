@@ -1,25 +1,15 @@
 
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "react-oidc-context";
+import { useAuth } from "./AuthContext";
 
 export default function ProtectedLayout() {
-  const auth = useAuth();
-
-  async function handleSignOut() {
-    try {
-      if (auth?.removeUser) {
-        await auth.removeUser();
-      }
-    } catch (error) {
-      console.warn("Sign-out cleanup warning:", error);
-    }
-
-    window.location.assign(window.location.origin + "/");
-  }
+  const { user, logout } = useAuth();
 
   const menuItems = [
-    { to: "/", label: "Home" },
+    { to: "/app", label: "Home" },
     { to: "/dashboard", label: "Dashboard" },
+    { to: "/devices", label: "Devices" },
+    { to: "/profile", label: "Profile" },
     { to: "/reports", label: "Reports" },
     { to: "/alerts", label: "Alerts" },
     { to: "/settings", label: "Settings" },
@@ -38,7 +28,7 @@ export default function ProtectedLayout() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === "/dashboard"}
+              end={item.to === "/app" || item.to === "/dashboard"}
               className={({ isActive }) =>
                 isActive ? "menu-link active" : "menu-link"
               }
@@ -49,8 +39,8 @@ export default function ProtectedLayout() {
         </nav>
 
         <div className="user-panel">
-          <span className="user-email">{auth.user?.profile?.email || "User"}</span>
-          <button type="button" className="signout-button" onClick={handleSignOut}>
+          <span className="user-email">{user?.name || user?.email || "User"}</span>
+          <button type="button" className="signout-button" onClick={logout}>
             Sign out
           </button>
         </div>

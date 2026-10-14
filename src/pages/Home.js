@@ -1,9 +1,62 @@
 
-import { Link } from "react-router-dom";
-import { useAuth } from "react-oidc-context";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Home() {
-  const auth = useAuth();
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+
+  if (user && pathname === "/") {
+    return <Navigate to="/app" replace />;
+  }
+
+  if (user) {
+    return (
+      <section className="content-page personal-home">
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">Welcome back</p>
+            <h1>Hello, {user.name}.</h1>
+          </div>
+          <Link to="/dashboard" className="btn btn-primary">Open dashboard</Link>
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span>Devices</span>
+            <strong>{user.devices?.length || 0}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Zone status</span>
+            <strong>Healthy</strong>
+          </div>
+          <div className="stat-card">
+            <span>Next action</span>
+            <strong>Review reports</strong>
+          </div>
+        </div>
+
+        <div className="panel-grid">
+          <div className="info-panel">
+            <h3>My irrigation overview</h3>
+            <p>
+              Your current system is operating normally. You can jump into the dashboard,
+              manage your devices, or update your profile from the menu above.
+            </p>
+          </div>
+
+          <div className="info-panel">
+            <h3>Quick links</h3>
+            <div className="quick-links">
+              <Link to="/devices">Manage devices</Link>
+              <Link to="/profile">Edit profile</Link>
+              <Link to="/alerts">Check alerts</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <main className="home-page">
@@ -16,12 +69,7 @@ export default function Home() {
         <nav className="site-nav" aria-label="Main navigation">
           <a href="#features">Features</a>
           <a href="#benefits">Benefits</a>
-          <a href="#about">About</a>
-          {auth.isAuthenticated ? (
-            <Link to="/dashboard" className="btn btn-primary">Dashboard</Link>
-          ) : (
-            <Link to="/login" className="btn btn-primary">Login</Link>
-          )}
+          <Link to="/login" className="btn btn-primary">Login</Link>
         </nav>
       </header>
 
@@ -35,11 +83,7 @@ export default function Home() {
           </p>
 
           <div className="cta-row">
-            {auth.isAuthenticated ? (
-              <Link to="/dashboard" className="btn btn-primary">Open dashboard</Link>
-            ) : (
-              <Link to="/login" className="btn btn-primary">Login</Link>
-            )}
+            <Link to="/login" className="btn btn-primary">Login</Link>
             <a href="#features" className="btn btn-secondary">Explore features</a>
           </div>
 
