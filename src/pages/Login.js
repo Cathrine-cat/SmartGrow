@@ -50,7 +50,18 @@ export default function Login() {
         }
       }
     } catch (submitError) {
-      setError(submitError.message || "Something went wrong.");
+      const alreadyConfirmed =
+        submitError.name === "UserAlreadyConfirmedException" ||
+        (submitError.name === "NotAuthorizedException" &&
+          /current status is confirmed/i.test(submitError.message || ""));
+
+      if (confirmingEmail && alreadyConfirmed) {
+        setConfirmingEmail(false);
+        setMode("login");
+        setMessage("Your email is already verified. Sign in with your email and password.");
+      } else {
+        setError(submitError.message || "Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
