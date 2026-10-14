@@ -7,6 +7,9 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import ProtectedLayout from "./auth/ProtectedLayout";
 
 import IrrigationDashboard from "./IrrigationDashboard";
+import Reports from "./pages/Reports";
+import Alerts from "./pages/Alerts";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
@@ -19,10 +22,10 @@ export default function App() {
         {/* Protected pages */}
         <Route element={<ProtectedRoute />}>
           <Route element={<ProtectedLayout />}>
-            <Route
-              path="/dashboard"
-              element={<IrrigationDashboard />}
-            />
+            <Route path="/dashboard" element={<IrrigationDashboard />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
       </Routes>

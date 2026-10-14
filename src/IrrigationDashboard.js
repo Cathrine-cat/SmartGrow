@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import Dashboard from "./components/Dashboard";
 
@@ -41,8 +41,7 @@ function App() {
  const PUMP_TIMEOUT_SECONDS = 60;
   
 
-  async function fetchData() {
-
+  const fetchData = useCallback(async () => {
     try {
       const response =  await fetch(API_URL);
       const data = await response.json();
@@ -51,79 +50,70 @@ function App() {
     } catch (error) {
       console.error("Latest data error:",error );
     }
-  }
+  }, [API_URL]);
 
-  async function fetchHistory() {
-  try {
-    const response = await fetch(HISTORY_URL);
-    const data = await response.json();
-    setHistory(data);
-    console.log("HISTORY RESPONSE:", data);
-  } catch (error) {
-    console.error(error);
-  }
-}
+  const fetchHistory = useCallback(async () => {
+    try {
+      const response = await fetch(HISTORY_URL);
+      const data = await response.json();
+      setHistory(data);
+      console.log("HISTORY RESPONSE:", data);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [HISTORY_URL]);
 
-async function fetchSettings() {
-  try {
-    const response =await fetch(SETTINGS_URL);
-    const data =await response.json();
-    console.log("SETTINGS:",data);
-    setSettings(data);
-  } catch (error) {
-    console.error(
-      "Settings error:",
-      error
-    );
-  }
-}
-
-async function fetchWateringHistory() {
-  try {
-    const response =
-      await fetch(WATERING_HISTORY_URL);
-
-    const data =
-      await response.json();
-
-    setWateringHistory(data);
-
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-async function fetchPumpStatus() {
-  try {
-    const response =
-      await fetch(
-        PUMP_STATUS_URL
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response =await fetch(SETTINGS_URL);
+      const data =await response.json();
+      console.log("SETTINGS:",data);
+      setSettings(data);
+    } catch (error) {
+      console.error(
+        "Settings error:",
+        error
       );
-    const data =
-      await response.json();
-    setPumpStatus(data);
-  } catch(error) {
-    console.error(error);
-  }
-}
+    }
+  }, [SETTINGS_URL]);
+
+  const fetchWateringHistory = useCallback(async () => {
+    try {
+      const response = await fetch(WATERING_HISTORY_URL);
+      const data = await response.json();
+      setWateringHistory(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [WATERING_HISTORY_URL]);
+
+  const fetchPumpStatus = useCallback(async () => {
+    try {
+      const response = await fetch(PUMP_STATUS_URL);
+      const data = await response.json();
+      setPumpStatus(data);
+    } catch(error) {
+      console.error(error);
+    }
+  }, [PUMP_STATUS_URL]);
 
   useEffect(() => {
-  const load = async () => {
-    await fetchData();
-    await fetchHistory();
-    await fetchSettings();
-    await fetchPumpStatus();
-    await fetchWateringHistory();
-  };
-  load();
-  const interval = setInterval(() => {
-    fetchData();
-    fetchHistory();
-    fetchPumpStatus();
-    fetchWateringHistory();
-  }, 5000);
-  return () => clearInterval(interval);
-}, []);
+    const load = async () => {
+      await fetchData();
+      await fetchHistory();
+      await fetchSettings();
+      await fetchPumpStatus();
+      await fetchWateringHistory();
+    };
+    load();
+    const interval = setInterval(() => {
+      fetchData();
+      fetchHistory();
+      fetchPumpStatus();
+      fetchWateringHistory();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchData, fetchHistory, fetchPumpStatus, fetchSettings, fetchWateringHistory]);
 
 useEffect(() => {
   if (!pumpStatus) return;

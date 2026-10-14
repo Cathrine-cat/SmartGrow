@@ -1,47 +1,64 @@
 
-import { Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "react-oidc-context";
-
-const CLIENT_ID = "5e1sld4og5nol6jebrcgrqt7tn";
-
-// Replace this with your actual Cognito domain.
-const COGNITO_DOMAIN =
-  "https://eu-north-1_lg2c9gK3O.auth.eu-north-1.amazoncognito.com";
 
 export default function ProtectedLayout() {
   const auth = useAuth();
 
   async function handleSignOut() {
-    await auth.removeUser();
+    try {
+      if (auth?.removeUser) {
+        await auth.removeUser();
+      }
+    } catch (error) {
+      console.warn("Sign-out cleanup warning:", error);
+    }
 
-    const logoutUrl = new URL(
-      `${COGNITO_DOMAIN}/logout`
-    );
-
-    logoutUrl.searchParams.set("client_id", CLIENT_ID);
-    logoutUrl.searchParams.set(
-      "logout_uri",
-      window.location.origin + "/"
-    );
-
-    window.location.assign(logoutUrl.toString());
+    window.location.assign(window.location.origin + "/");
   }
 
+  const menuItems = [
+    { to: "/", label: "Home" },
+    { to: "/dashboard", label: "Dashboard" },
+    { to: "/reports", label: "Reports" },
+    { to: "/alerts", label: "Alerts" },
+    { to: "/settings", label: "Settings" },
+  ];
+
   return (
-    <>
-      <header>
-        <a href="/">SmartGrow</a>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="brand-block">
+          <span className="brand-mark">S</span>
+          <span>SmartGrow</span>
+        </div>
 
-        <span>
-          {auth.user?.profile.email}
-        </span>
+        <nav className="app-menu" aria-label="Main navigation">
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/dashboard"}
+              className={({ isActive }) =>
+                isActive ? "menu-link active" : "menu-link"
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-        <button onClick={handleSignOut}>
-          Sign out
-        </button>
+        <div className="user-panel">
+          <span className="user-email">{auth.user?.profile?.email || "User"}</span>
+          <button type="button" className="signout-button" onClick={handleSignOut}>
+            Sign out
+          </button>
+        </div>
       </header>
 
-      <Outlet />
-    </>
+      <main className="app-content">
+        <Outlet />
+      </main>
+    </div>
   );
 }

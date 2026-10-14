@@ -13,13 +13,15 @@ export default function Login() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return (
+  auth.signinRedirect();
+
+  /*return (
     <main className="login-page">
       <section className="login-card">
         <Link to="/">← Back to homepage</Link>
 
         <h1>Welcome back</h1>
-        <p>Sign in to manage your irrigation system.</p>
+        <p>Sign in to manage your irrigation system.</p> 
 
         {auth.error && (
           <p role="alert">
@@ -35,5 +37,5 @@ export default function Login() {
         </button>
       </section>
     </main>
-  );
+  );*/
 }
