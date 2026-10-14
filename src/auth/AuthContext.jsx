@@ -19,9 +19,11 @@ function profileFromAttributes(attributes, currentUser) {
   return {
     id: currentUser.userId,
     sub: currentUser.userId,
-    name: attributes.name || "",
+    // Application profile fields come from DynamoDB, never from cached or
+    // Cognito profile attributes. Cognito remains the source for identity.
+    name: "",
     email: attributes.email || currentUser.username || "",
-    phone: attributes.phone_number || "",
+    phone: "",
     emailVerified: attributes.email_verified === "true",
     devices: [],
   };
@@ -49,7 +51,7 @@ function mergeDatabaseProfile(baseProfile, responseBody, deviceList) {
   return {
     ...baseProfile,
     name: profile?.name ?? profile?.Name ?? baseProfile.name,
-    phone: profile?.phoneNumber ?? profile?.phone ?? profile?.Phone ?? profile?.phone_number ?? baseProfile.phone,
+    phone: profile?.phoneNumber ?? profile?.PhoneNumber ?? profile?.phone ?? profile?.Phone ?? profile?.phone_number ?? baseProfile.phone,
     devices: nextDevices,
   };
 }
@@ -68,10 +70,12 @@ async function getUserProfile(user, token) {
   const url = new URL(PROFILE_URL);
   url.searchParams.set("userId", userId);
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url.toString(), { method: "GET", headers });
+  } catch {
+    throw new Error(`Could not reach GET ${url.toString()}. Check that API Gateway has a deployed GET /profile route and allows CORS for Authorization.`);
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
@@ -249,6 +253,11 @@ export function AuthProvider({ children }) {
       userId: user.sub || user.id,
       name: nextName,
       phoneNumber: nextPhone,
+      PhoneNumber: nextPhone,
+      // Accept the common legacy Lambda/table field names while the API is
+      // being standardized. The Lambda should persist only its chosen field.
+      phone: nextPhone,
+      Phone: nextPhone,
     }, PROFILE_URL);
 
     if (!response.ok) {

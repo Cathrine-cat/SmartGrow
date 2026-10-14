@@ -16,7 +16,7 @@ export default function Home() {
         <div className="page-header">
           <div>
             <p className="eyebrow">Welcome back</p>
-            <h1>Hello, {user.name}.</h1>
+            <h1>Hello, {user.name || user.email}.</h1>
           </div>
           <Link to="/dashboard" className="btn btn-primary">Open dashboard</Link>
         </div>
