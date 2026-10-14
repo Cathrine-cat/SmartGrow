@@ -6,16 +6,21 @@ export default function Devices() {
   const { user, addDevice, removeDevice, selectedDeviceId, selectDevice } = useAuth();
   const [deviceId, setDeviceId] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
+
+  const devices = Array.isArray(user?.devices) ? user.devices : [];
 
   async function handleAddDevice(event) {
     event.preventDefault();
     setMessage("");
+    setMessageType("success");
 
     try {
       await addDevice(deviceId);
       setDeviceId("");
       setMessage("Device added successfully.");
     } catch (error) {
+      setMessageType("error");
       setMessage(error.message || "Unable to add device.");
     }
   }
@@ -24,6 +29,7 @@ export default function Devices() {
     try {
       await removeDevice(id);
     } catch (error) {
+      setMessageType("error");
       setMessage(error.message || "Unable to remove device.");
     }
   }
@@ -54,14 +60,14 @@ export default function Devices() {
             <button type="submit" className="submit-button">Add device</button>
           </form>
 
-          {message && <p className="success-text">{message}</p>}
+          {message && <p className={messageType === "error" ? "error-box" : "success-text"} role="status">{message}</p>}
         </div>
 
         <div className="info-panel">
           <h3>My devices</h3>
-          {user?.devices?.length ? (
+          {devices.length ? (
             <div className="device-list">
-              {user.devices.map((item) => (
+              {devices.map((item) => (
                 <div
                   key={item}
                   className={selectedDeviceId === item ? "device-card active-device" : "device-card"}

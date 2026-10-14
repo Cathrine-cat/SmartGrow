@@ -8,9 +8,31 @@ const emptyState = {
 };
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshProfile } = useAuth();
   const [form, setForm] = useState(emptyState);
   const [status, setStatus] = useState("");
+  const [statusType, setStatusType] = useState("success");
+  const [saving, setSaving] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    if (!user?.sub) return undefined;
+
+    let cancelled = false;
+    setLoadingProfile(true);
+    refreshProfile()
+      .catch((error) => {
+        if (!cancelled) {
+          setStatusType("error");
+          setStatus(error.message || "Unable to load profile from the database.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProfile(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [user?.sub, refreshProfile]);
 
   useEffect(() => {
     if (user) {
@@ -27,15 +49,23 @@ export default function Profile() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function saveProfile() {
     setStatus("");
+    setStatusType("success");
+    setSaving(true);
 
     try {
-      await updateProfile(form);
+      await updateProfile({
+        name: form.name,
+        phone: form.phone,
+      });
+
       setStatus("Your profile was updated successfully.");
     } catch (error) {
+      setStatusType("error");
       setStatus(error.message || "Unable to update the profile.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -51,7 +81,7 @@ export default function Profile() {
       <div className="panel-grid profile-layout">
         <div className="info-panel">
           <h3>Personal details</h3>
-          <form className="profile-form" onSubmit={handleSubmit}>
+          <div className="profile-form">
             <label>
               <span>Name</span>
               <input
@@ -83,10 +113,12 @@ export default function Profile() {
               />
             </label>
 
-            {status && <p className="success-text">{status}</p>}
+            {status && <p className={statusType === "error" ? "error-box" : "success-text"} role="status">{status}</p>}
 
-            <button type="submit" className="submit-button">Save changes</button>
-          </form>
+            <button type="button" className="submit-button" onClick={saveProfile} disabled={saving}>
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
         </div>
 
         <div className="info-panel">
@@ -95,7 +127,7 @@ export default function Profile() {
             <li>Name: {user?.name || "Not set"}</li>
             <li>Email: {user?.email || "Not set"}</li>
             <li>Phone: {user?.phone || "Not set"}</li>
-            <li>Linked devices: {user?.devices?.length || 0}</li>
+            <li>Linked devices: {loadingProfile ? "Loading..." : (user?.devices?.length ?? 0)}</li>
           </ul>
         </div>
       </div>
