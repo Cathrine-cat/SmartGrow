@@ -1,9 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
-import { AuthProvider, useAuth } from "./AuthContext";
+import { AuthProvider, getDisplayName, useAuth } from "./AuthContext";
 
 describe("auth flow", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it("prefers the saved profile name and falls back to email", () => {
+    expect(getDisplayName({ name: "Alice Johnson", email: "alice@example.com" })).toBe("Alice Johnson");
+    expect(getDisplayName({ email: "alice@example.com" })).toBe("alice@example.com");
+    expect(getDisplayName({ name: "   ", email: "alice@example.com" })).toBe("alice@example.com");
   });
 
   it("registers a user and logs them in with email and password", async () => {

@@ -56,7 +56,18 @@ function mergeDatabaseProfile(baseProfile, responseBody, deviceList) {
   };
 }
 
+export function getDisplayName(user) {
+  const directName = user?.name ?? user?.Name ?? user?.profile?.name ?? user?.profile?.Name ?? "";
+  const trimmedName = typeof directName === "string" ? directName.trim() : "";
 
+  if (trimmedName) {
+    return trimmedName;
+  }
+
+  const email = user?.email ?? user?.profile?.email ?? "";
+  const trimmedEmail = typeof email === "string" ? email.trim() : "";
+  return trimmedEmail || "User";
+}
 
 async function getUserProfile(user, token) {
   if (!user) {
@@ -120,23 +131,35 @@ export function AuthProvider({ children }) {
       const token = await getAccessToken();
       const devicesUrl = new URL(DEVICES_URL);
       devicesUrl.searchParams.set("userId", cognitoProfile.sub);
-      const [profileBody, devicesResponse] = await Promise.all([
-        getUserProfile(cognitoProfile, token).catch((error) => {
-          console.error("Profile read failed:", error);
-          return null;
-        }),
+      // Load the database profile during auth initialization so its name is
+      // ready before protected pages render. Device API failures must not
+      // discard a successfully loaded profile.
+      const [profileResult, devicesResult] = await Promise.allSettled([
+        getUserProfile(cognitoProfile, token),
         fetch(devicesUrl.toString(), {
           headers: { Authorization: `Bearer ${token}` },
+        }).then(async (response) => {
+          if (!response.ok) {
+            if (response.status === 404) return [];
+            throw new Error(`Devices read failed with HTTP ${response.status}.`);
+          }
+          return response.json();
         }),
       ]);
 
-      let deviceList = [];
+      let profileBody = null;
+      if (profileResult.status === "fulfilled") {
+        profileBody = profileResult.value;
+      } else {
+        console.error("Profile read failed:", profileResult.reason);
+      }
 
-      if (devicesResponse.ok) {
-        const parsedDevices = await devicesResponse.json();
+      let deviceList = [];
+      if (devicesResult.status === "fulfilled") {
+        const parsedDevices = devicesResult.value;
         deviceList = normalizeDeviceList(parsedDevices?.devices ?? parsedDevices?.items ?? parsedDevices ?? []);
-      } else if (devicesResponse.status !== 404) {
-        console.error(`Devices read failed with HTTP ${devicesResponse.status}.`);
+      } else {
+        console.error("Devices read failed:", devicesResult.reason);
       }
 
       const mergedProfile = mergeDatabaseProfile(cognitoProfile, profileBody, deviceList);

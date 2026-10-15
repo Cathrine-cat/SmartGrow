@@ -1,22 +1,28 @@
 
 import { Link, Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { getDisplayName, useAuth } from "../auth/AuthContext";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { pathname } = useLocation();
+
+  if (loading) {
+    return <p>Checking your login...</p>;
+  }
 
   if (user && pathname === "/") {
     return <Navigate to="/app" replace />;
   }
 
   if (user) {
+    const displayName = getDisplayName(user);
+
     return (
       <section className="content-page personal-home">
         <div className="page-header">
           <div>
             <p className="eyebrow">Welcome back</p>
-            <h1>Hello, {user.name || user.email}.</h1>
+            <h1>Hello, {displayName}.</h1>
           </div>
           <Link to="/dashboard" className="btn btn-primary">Open dashboard</Link>
         </div>

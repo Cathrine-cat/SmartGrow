@@ -1,6 +1,6 @@
 
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { getDisplayName, useAuth } from "./AuthContext";
 
 export default function ProtectedLayout() {
   const { user, logout } = useAuth();
@@ -39,7 +39,7 @@ export default function ProtectedLayout() {
         </nav>
 
         <div className="user-panel">
-          <span className="user-email">{user?.name || user?.email || "User"}</span>
+          <span className="user-email">{getDisplayName(user)}</span>
           <button type="button" className="signout-button" onClick={logout}>
             Sign out
           </button>
