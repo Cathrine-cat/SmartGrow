@@ -46,7 +46,11 @@ export default function Devices() {
   const [deviceMessage, setDeviceMessage] = useState("");
   const [deviceMessageType, setDeviceMessageType] = useState("success");
   const [editError, setEditError] = useState("");
-  const [showEditPasswords, setShowEditPasswords] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPasswordVerified, setCurrentPasswordVerified] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const authorizedFetch = useCallback(async (url, options = {}) => {
     const token = await getAccessToken();
@@ -184,10 +188,45 @@ async function handleRemoveDevice(id) {
     confirmNewPassword: "",
   });
   setEditError("");
-  setShowEditPasswords(false);
+  setChangingPassword(false);
+  setCurrentPasswordVerified(false);
+  setShowCurrentPassword(false);
+  setShowNewPassword(false);
+  setShowConfirmPassword(false);
 }
 
-  
+  async function verifyCurrentDevicePassword() {
+    setEditError("");
+    if (!editForm.currentPassword) {
+      setEditError("Enter the current device password.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const body = await responseBody(
+        await authorizedFetch(
+          `${DEVICES_URL}/${encodeURIComponent(editingId)}/verify-password`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword: editForm.currentPassword }),
+          }
+        )
+      );
+      if (body.valid !== true && body.verified !== true) {
+        throw new Error("Current device password is incorrect.");
+      }
+      setCurrentPasswordVerified(true);
+      setEditError("");
+    } catch (error) {
+      setCurrentPasswordVerified(false);
+      setEditError(error.message || "Unable to verify the current device password.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
 async function saveDevice(event) {
   event.preventDefault();
   setBusy(true);
@@ -209,8 +248,8 @@ async function saveDevice(event) {
     if (nextLocation !== originalLocation) payload.location = nextLocation;
 
     if (editForm.newPassword || editForm.confirmNewPassword) {
-      if (!editForm.currentPassword) {
-        throw new Error("Enter the current device password.");
+      if (!changingPassword || !currentPasswordVerified) {
+        throw new Error("Verify the current device password before setting a new one.");
       }
       if (!editForm.newPassword || !editForm.confirmNewPassword) {
         throw new Error("Enter and confirm the new device password.");
@@ -270,8 +309,13 @@ async function saveDevice(event) {
           ) : (
             <form className="device-form" onSubmit={handleClaimDevice}>
               <p>Device <strong>{verifiedId}</strong> was found.</p>
-              <label><span>Device password</span><input required type={showClaimPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></label>
-              <button type="button" className="ghost-button" onClick={() => setShowClaimPassword((shown) => !shown)}>{showClaimPassword ? "Hide password" : "Show password"}</button>
+              <label>
+                <span>Device password</span>
+                <div className="password-input-row">
+                  <input required type={showClaimPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+                  <button type="button" className="password-toggle" aria-label={showClaimPassword ? "Hide password" : "Show password"} aria-pressed={showClaimPassword} onClick={() => setShowClaimPassword((shown) => !shown)}>{showClaimPassword ? "Hide" : "Show"}</button>
+                </div>
+              </label>
               <button type="submit" className="submit-button" disabled={busy}>{busy ? "Linking..." : "Verify and add"}</button>
               <button type="button" className="ghost-button" onClick={() => { setVerifiedId(""); setPassword(""); setShowClaimPassword(false); }}>Use another ID</button>
             </form>
@@ -294,56 +338,65 @@ async function saveDevice(event) {
                     {isEditing && <form className="device-form device-edit-form" onSubmit={saveDevice}>
                       <label><span>Name</span><input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} /></label>
                       <label><span>Location</span><input value={editForm.location} onChange={(event) => setEditForm({ ...editForm, location: event.target.value })} /></label>
-                      <label>
-                        <span>Current device password</span>
-                        <input
-                          type={showEditPasswords ? "text" : "password"}
-                          value={editForm.currentPassword}
-                          onChange={(event) =>
-                            setEditForm({
-                              ...editForm,
-                              currentPassword: event.target.value,
-                            })
-                          }
-                          autoComplete="current-password"
-                          disabled={busy}
-                        />
-                      </label>
-
-                      <label>
-                        <span>New device password (optional)</span>
-                        <input
-                          type={showEditPasswords ? "text" : "password"}
-                          value={editForm.newPassword}
-                          onChange={(event) =>
-                            setEditForm({
-                              ...editForm,
-                              newPassword: event.target.value,
-                            })
-                          }
-                          autoComplete="new-password"
-                          disabled={busy}
-                        />
-                      </label>
-                      <label>
-                        <span>Confirm new device password</span>
-                        <input
-                          type={showEditPasswords ? "text" : "password"}
-                          value={editForm.confirmNewPassword}
-                          onChange={(event) =>
-                            setEditForm({
-                              ...editForm,
-                              confirmNewPassword: event.target.value,
-                            })
-                          }
-                          autoComplete="new-password"
-                          disabled={busy}
-                        />
-                      </label>
-                      <button type="button" className="ghost-button" onClick={() => setShowEditPasswords((shown) => !shown)}>{showEditPasswords ? "Hide passwords" : "Show passwords"}</button>
+                      {!changingPassword ? (
+                        <button type="button" className="ghost-button" onClick={() => { setChangingPassword(true); setCurrentPasswordVerified(false); setEditError(""); }}>
+                          Change password
+                        </button>
+                      ) : (
+                        <>
+                          <label>
+                            <span>Current device password</span>
+                            <div className="password-input-row">
+                              <input
+                                type={showCurrentPassword ? "text" : "password"}
+                                value={editForm.currentPassword}
+                                onChange={(event) => {
+                                  setEditForm({ ...editForm, currentPassword: event.target.value, newPassword: "", confirmNewPassword: "" });
+                                  setCurrentPasswordVerified(false);
+                                  setEditError("");
+                                }}
+                                autoComplete="current-password"
+                                disabled={busy}
+                              />
+                              <button type="button" className="password-toggle" aria-label={showCurrentPassword ? "Hide password" : "Show password"} aria-pressed={showCurrentPassword} onClick={() => setShowCurrentPassword((shown) => !shown)}>{showCurrentPassword ? "Hide" : "Show"}</button>
+                            </div>
+                          </label>
+                          {!currentPasswordVerified ? (
+                            <button type="button" className="ghost-button" onClick={verifyCurrentDevicePassword} disabled={busy}>
+                              {busy ? "Checking..." : "Verify current password"}
+                            </button>
+                          ) : (
+                            <>
+                              <p className="success-text" role="status">Current password verified.</p>
+                              <label>
+                                <span>New device password</span>
+                                <div className="password-input-row">
+                                  <input type={showNewPassword ? "text" : "password"} value={editForm.newPassword} onChange={(event) => setEditForm({ ...editForm, newPassword: event.target.value })} autoComplete="new-password" disabled={busy} />
+                                  <button type="button" className="password-toggle" aria-label={showNewPassword ? "Hide password" : "Show password"} aria-pressed={showNewPassword} onClick={() => setShowNewPassword((shown) => !shown)}>{showNewPassword ? "Hide" : "Show"}</button>
+                                </div>
+                              </label>
+                              <label>
+                                <span>Confirm new device password</span>
+                                <div className="password-input-row">
+                                  <input type={showConfirmPassword ? "text" : "password"} value={editForm.confirmNewPassword} onChange={(event) => setEditForm({ ...editForm, confirmNewPassword: event.target.value })} autoComplete="new-password" disabled={busy} aria-describedby="device-password-match" />
+                                  <button type="button" className="password-toggle" aria-label={showConfirmPassword ? "Hide password" : "Show password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((shown) => !shown)}>{showConfirmPassword ? "Hide" : "Show"}</button>
+                                </div>
+                              </label>
+                              {editForm.confirmNewPassword && (
+                                <p id="device-password-match" className={editForm.newPassword === editForm.confirmNewPassword ? "success-text" : "field-help"} role="status">
+                                  {editForm.newPassword === editForm.confirmNewPassword ? "Passwords match." : "Passwords do not match yet."}
+                                </p>
+                              )}
+                              <button type="button" className="ghost-button" onClick={() => { setChangingPassword(false); setCurrentPasswordVerified(false); setEditForm({ ...editForm, currentPassword: "", newPassword: "", confirmNewPassword: "" }); setEditError(""); setShowCurrentPassword(false); setShowNewPassword(false); setShowConfirmPassword(false); }}>
+                                Cancel password change
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
                       {editError && <p className="error-box" role="alert">{editError}</p>}
                       <button type="submit" disabled={busy}>Save changes</button>
-                      <button type="button" className="ghost-button" onClick={() => { setEditingId(null); setEditError(""); setShowEditPasswords(false); }}>Cancel</button>
+                      <button type="button" className="ghost-button" onClick={() => { setEditingId(null); setEditError(""); setChangingPassword(false); setCurrentPasswordVerified(false); }}>Cancel</button>
                     </form>}
                   </div>
                   {!isEditing && <div className="device-actions">

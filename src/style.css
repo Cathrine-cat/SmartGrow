@@ -358,6 +358,26 @@ input {
   font-size: clamp(2.2rem, 4vw, 3rem);
 }
 
+.dashboard-device-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(260px, 42vw);
+  color: var(--neutral-700);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dashboard-device-select select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(18, 62, 43, 0.15);
+  border-radius: 10px;
+  background: white;
+  color: var(--neutral-900);
+  font: inherit;
+}
+
 .stats-grid,
 .panel-grid {
   display: grid;
@@ -431,6 +451,18 @@ input {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: start;
+}
+
+@media (max-width: 680px) {
+  .dashboard-page-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .dashboard-device-select {
+    min-width: 0;
+  }
 }
 
 .column {
