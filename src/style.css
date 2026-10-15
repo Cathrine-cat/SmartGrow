@@ -632,6 +632,16 @@ button:hover {
   color: var(--neutral-700);
 }
 
+.device-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.device-edit-form {
+  margin-top: 14px;
+  max-width: 420px;
+}
+
 .active-device {
   border-color: rgba(58, 161, 102, 0.4);
   background: rgba(58, 161, 102, 0.05);

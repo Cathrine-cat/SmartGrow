@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import Dashboard from "./components/Dashboard";
 import { useAuth } from "./auth/AuthContext";
 
 function App() {
-  const { selectedDeviceId, getAccessToken } = useAuth();
+  const { user, selectedDeviceId, selectDevice, getAccessToken } = useAuth();
 
   const [sensorData, setSensorData] = useState(null);
 
@@ -107,6 +108,7 @@ function App() {
   }, [PUMP_STATUS_URL, authorizedFetch]);
 
   useEffect(() => {
+    if (!selectedDeviceId) return undefined;
     const load = async () => {
       await fetchData();
       await fetchHistory();
@@ -122,7 +124,7 @@ function App() {
       fetchWateringHistory();
     }, 5000);
     return () => clearInterval(interval);
-  }, [fetchData, fetchHistory, fetchPumpStatus, fetchSettings, fetchWateringHistory]);
+  }, [selectedDeviceId, fetchData, fetchHistory, fetchPumpStatus, fetchSettings, fetchWateringHistory]);
 
 useEffect(() => {
   if (!pumpStatus) return;
@@ -234,6 +236,30 @@ function getSafePumpStatus() {
 }
 
 const safePumpStatus = getSafePumpStatus();
+
+  if (!selectedDeviceId) {
+    const devices = Array.isArray(user?.devices) ? user.devices : [];
+    return (
+      <section className="content-page">
+        <div className="page-header"><div><p className="eyebrow">Device dashboard</p><h1>Select a device</h1></div></div>
+        <div className="info-panel">
+          <p>Choose a device to open its dashboard.</p>
+          {devices.length ? <div className="device-list">
+            {devices.map((device) => {
+              const id = typeof device === "string" ? device : device.deviceId || device.id;
+              return <div className="device-card" key={id}>
+                <div><strong>{typeof device === "string" ? device : device.name || id}</strong><p>ID: {id}</p></div>
+                <button type="button" onClick={() => selectDevice(id)}>View dashboard</button>
+              </div>;
+            })}
+          </div> : <div>
+            <p>No devices are linked to your account yet. Add a device to get started.</p>
+            <Link to="/devices" className="btn btn-primary">Go to devices</Link>
+          </div>}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
