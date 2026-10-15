@@ -10,9 +10,8 @@ export default function ProtectedLayout() {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/devices", label: "Devices" },
     { to: "/profile", label: "Profile" },
-    { to: "/reports", label: "Reports" },
     { to: "/alerts", label: "Alerts" },
-    { to: "/settings", label: "Settings" },
+    { to: "/assistant", label: "Plant assistant" },
   ];
 
   return (

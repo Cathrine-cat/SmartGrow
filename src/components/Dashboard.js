@@ -12,18 +12,22 @@ function Dashboard({ data,
   manualDuration,
   setManualDuration,
   pumpStatus,
- remaining }) {
+  remaining,
+  dashboardError,
+}) {
 
   if (!data) {
-    return <h1>Loading...</h1>;
+    return (
+      <div className="dashboard-loading card" role="status">
+        {dashboardError ? "Sensor readings could not be loaded." : "Loading device data…"}
+      </div>
+    );
   }
 
   return (
   <div className="dashboard">
 
-    <h1 className="title">
-      Smart Irrigation Dashboard
-    </h1>
+    <p className="dashboard-subtitle">Live readings and irrigation controls</p>
 
     <div className="grid">
       

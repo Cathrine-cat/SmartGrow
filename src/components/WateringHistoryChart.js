@@ -1,106 +1,74 @@
+import { useMemo } from "react";
 import {
-  LineChart,
-  Line,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
 } from "recharts";
 
 function WateringHistoryChart({ history }) {
+  const chartData = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const firstDay = new Date(today);
+    firstDay.setDate(firstDay.getDate() - 6);
 
-  // Convert backend data into time-series format
-  const sortedHistory = [...history].sort(
-  (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-);
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(firstDay);
+      day.setDate(firstDay.getDate() + index);
+      return {
+        date: day,
+        dayKey: `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`,
+        label: day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }),
+        duration: 0,
+        events: 0,
+      };
+    });
+    const byDay = new Map(days.map((day) => [day.dayKey, day]));
+    const rows = Array.isArray(history) ? history.slice(-500) : [];
 
-if (sortedHistory.length === 0) {
-  return <p>No watering history available.</p>;
-}
+    rows.forEach((event) => {
+      const eventDate = new Date(event?.timestamp);
+      if (!Number.isFinite(eventDate.getTime())) return;
+      eventDate.setHours(0, 0, 0, 0);
+      const key = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
+      const bucket = byDay.get(key);
+      if (!bucket) return;
+      bucket.duration += Math.max(0, Number(event.duration) || 0);
+      bucket.events += 1;
+    });
 
-// Round the start time down to the nearest hour
-const start = new Date(sortedHistory[0].timestamp);
-start.setMinutes(0, 0, 0);
+    return days;
+  }, [history]);
 
-// Round the end time up to the nearest hour
-const end = new Date();
-end.setMinutes(0, 0, 0);
-end.setHours(end.getHours() + 1);
-
-// Create hourly buckets
-const buckets = [];
-
-for (
-  let time = new Date(start);
-  time <= end;
-  time.setHours(time.getHours() + 1)
-) {
-  buckets.push({
-    timestamp: new Date(time),
-    duration: 0,
-  });
-}
-
-// Add watering durations to the correct hour
-sortedHistory.forEach((event) => {
-  const eventTime = new Date(event.timestamp);
-
-  const bucketIndex = Math.floor(
-    (eventTime - start) / (1000 * 60 * 60)
-  );
-
-  if (bucketIndex >= 0 && bucketIndex < buckets.length) {
-    buckets[bucketIndex].duration += Number(event.duration) || 0;
-  }
-});
-
-// Format for Recharts
-const chartData = buckets.map((bucket) => ({
-  time: bucket.timestamp.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }),
-  duration: bucket.duration,
-}));
+  const hasWatering = chartData.some((day) => day.events > 0);
+  if (!hasWatering) return <p>No watering events in the last 7 days.</p>;
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" />
-
-        <XAxis
-          dataKey="time"
-          tick={{ fontSize: 12 }}
-          angle={-30}
-          textAnchor="end"
-          height={60}
-        />
-
-        <YAxis
-        domain={[0, 100]}
-        allowDataOverflow={true}
-          label={{
-            value: "Pump (sec)",
-            angle: -90,
-            position: "insideLeft"
-          }}
-        />
-
-        <Tooltip />
-
-        <Line
-          type="linear"
-          dataKey="duration"
-          stroke="#2e7d32"
-          strokeWidth={2}
-          dot={{ r: 3 }}
-          activeDot={{ r: 6 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="watering-chart">
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={chartData} margin={{ top: 12, right: 12, left: -12, bottom: 4 }}>
+          <CartesianGrid vertical={false} stroke="rgba(18, 62, 43, 0.09)" />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#697a6d", fontSize: 12 }} />
+          <YAxis
+            allowDecimals={false}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#697a6d", fontSize: 12 }}
+            label={{ value: "Seconds", angle: -90, position: "insideLeft", fill: "#697a6d" }}
+          />
+          <Tooltip
+            formatter={(value) => [`${Math.round(value)} sec`, "Watering"]}
+            labelFormatter={(label) => label}
+            contentStyle={{ borderRadius: 10, borderColor: "#e7efe8" }}
+          />
+          <Bar dataKey="duration" name="Watering" fill="#3aa166" radius={[6, 6, 0, 0]} maxBarSize={38} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

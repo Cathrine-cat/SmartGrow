@@ -5,7 +5,10 @@ import Dashboard from "./components/Dashboard";
 import { useAuth } from "./auth/AuthContext";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
-const DEVICE_REFRESH_MS = 5000;
+const LIVE_REFRESH_MS = 10000;
+const HISTORY_REFRESH_MS = 60000;
+const MAX_HISTORY_POINTS = 300;
+const MAX_WATERING_EVENTS = 200;
 const DEFAULT_SETTINGS = {
   autoMode: false,
   minIntervalHours: 24,
@@ -50,17 +53,34 @@ function ensureSelectedDevice(payload, selectedId) {
     throw new Error("The API returned data for a different device.");
   }
 
-  if (Array.isArray(payload?.items)) {
-    return {
-      ...payload,
-      items: payload.items.filter((item) => {
-        const itemDeviceId = item?.deviceId || item?.device_id;
-        return !itemDeviceId || itemDeviceId === selectedId;
-      }),
-    };
+  for (const key of ["items", "history", "records", "data"]) {
+    if (Array.isArray(payload?.[key])) {
+      return {
+        ...payload,
+        [key]: payload[key].filter((item) => {
+          const itemDeviceId = item?.deviceId || item?.device_id;
+          return !itemDeviceId || itemDeviceId === selectedId;
+        }),
+      };
+    }
   }
 
   return payload;
+}
+
+function limitSeries(payload, limit) {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.history)
+        ? payload.history
+        : Array.isArray(payload?.records)
+          ? payload.records
+          : Array.isArray(payload?.data)
+            ? payload.data
+          : [];
+  return rows.slice(-limit);
 }
 
 function App() {
@@ -136,10 +156,10 @@ function App() {
     async function loadInitialData() {
       const resources = [
         ["latest-data", setSensorData],
-        ["history", setHistory],
+        ["history", (value) => setHistory(limitSeries(value, MAX_HISTORY_POINTS))],
         ["settings", setSettings],
         ["pumpStatus", setPumpStatus],
-        ["watering-history", setWateringHistory],
+        ["watering-history", (value) => setWateringHistory(limitSeries(value, MAX_WATERING_EVENTS))],
       ];
       const results = await Promise.allSettled(
         resources.map(([path]) => loadDeviceResource(path, deviceId, controller.signal))
@@ -157,27 +177,55 @@ function App() {
       if (errors.length) setDashboardError(errors.join(" "));
     }
 
-    loadInitialData();
-    const interval = setInterval(async () => {
+    let initialLoadInProgress = true;
+    let liveRefreshInProgress = false;
+    let historyRefreshInProgress = false;
+
+    async function refreshLiveData() {
+      if (!active || initialLoadInProgress || liveRefreshInProgress) return;
+      liveRefreshInProgress = true;
       const resources = [
         ["latest-data", setSensorData],
-        ["history", setHistory],
         ["pumpStatus", setPumpStatus],
-        ["watering-history", setWateringHistory],
       ];
       const results = await Promise.allSettled(
         resources.map(([path]) => loadDeviceResource(path, deviceId, controller.signal))
       );
-      if (!active) return;
-      results.forEach((result, index) => {
-        if (result.status === "fulfilled") resources[index][1](result.value);
-      });
-    }, DEVICE_REFRESH_MS);
+      if (active) {
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") resources[index][1](result.value);
+        });
+      }
+      liveRefreshInProgress = false;
+    }
+
+    async function refreshHistory() {
+      if (!active || initialLoadInProgress || historyRefreshInProgress) return;
+      historyRefreshInProgress = true;
+      const resources = [
+        ["history", (value) => setHistory(limitSeries(value, MAX_HISTORY_POINTS))],
+        ["watering-history", (value) => setWateringHistory(limitSeries(value, MAX_WATERING_EVENTS))],
+      ];
+      const results = await Promise.allSettled(
+        resources.map(([path]) => loadDeviceResource(path, deviceId, controller.signal))
+      );
+      if (active) {
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") resources[index][1](result.value);
+        });
+      }
+      historyRefreshInProgress = false;
+    }
+
+    loadInitialData().finally(() => { initialLoadInProgress = false; });
+    const liveInterval = setInterval(refreshLiveData, LIVE_REFRESH_MS);
+    const historyInterval = setInterval(refreshHistory, HISTORY_REFRESH_MS);
 
     return () => {
       active = false;
       controller.abort();
-      clearInterval(interval);
+      clearInterval(liveInterval);
+      clearInterval(historyInterval);
     };
   }, [selectedDeviceId, loadDeviceResource]);
 
@@ -293,6 +341,7 @@ function App() {
         setManualDuration={setManualDuration}
         pumpStatus={pumpStatus}
         remaining={remaining}
+        dashboardError={dashboardError}
       />
     </section>
   );
