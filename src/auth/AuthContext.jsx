@@ -85,7 +85,7 @@ async function getUserProfile(user, token) {
   try {
     response = await fetch(url.toString(), { method: "GET", headers });
   } catch {
-    throw new Error(`Could not reach GET ${url.toString()}. Check that API Gateway has a deployed GET /profile route and allows CORS for Authorization.`);
+    throw new Error(`Could not reach GET ${url.toString()}. `);
   }
 
   if (!response.ok) {
