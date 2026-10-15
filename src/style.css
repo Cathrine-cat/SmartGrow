@@ -563,6 +563,73 @@ button:hover {
   font-weight: 600;
 }
 
+.field-label {
+  color: var(--neutral-700);
+  font-weight: 600;
+}
+
+.optional-label,
+.phone-help,
+.readonly-label,
+.field-help {
+  color: var(--neutral-700);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.field-help {
+  margin: -8px 0 0;
+}
+
+.readonly-field input {
+  background: #f3f5f4;
+  color: #59665f;
+  cursor: default;
+}
+
+.phone-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phone-input-row,
+.password-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.phone-input-row select {
+  width: 47%;
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid rgba(18, 62, 43, 0.15);
+  border-radius: 10px;
+  background: white;
+  color: var(--neutral-700);
+}
+
+.phone-input-row input,
+.password-input-row input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.password-toggle {
+  flex: 0 0 68px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--green-800);
+  border: 1px solid rgba(18, 62, 43, 0.15);
+  font-weight: 700;
+}
+
+.password-toggle:hover {
+  background: rgba(58, 161, 102, 0.08);
+  color: var(--green-900);
+}
+
 .auth-form input,
 .profile-form input,
 .device-form input {

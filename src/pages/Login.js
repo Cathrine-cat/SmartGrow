@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { callingCodes, toE164Phone } from "../utils/phone";
 
 const initialForm = {
   name: "",
@@ -13,6 +14,8 @@ const initialForm = {
 export default function Login() {
   const { user, login, register, confirmRegistration, resendConfirmationCode } = useAuth();
   const [mode, setMode] = useState("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+40");
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmationCode, setConfirmationCode] = useState("");
   const [form, setForm] = useState(initialForm);
@@ -43,7 +46,8 @@ export default function Login() {
           setMessage("This account needs email verification. Enter the code we sent you.");
         }
       } else {
-        const result = await register(form);
+        const phone = toE164Phone(form.phone, phoneCountryCode);
+        const result = await register({ ...form, phone });
         if (result.nextStep?.signUpStep === "CONFIRM_SIGN_UP") {
           setConfirmingEmail(true);
           setMessage("We sent a verification code to your email address.");
@@ -133,28 +137,55 @@ export default function Login() {
           </label>}
 
           {!confirmingEmail && mode === "signup" && (
-            <label>
-              <span>Phone</span>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="Optional"
-              />
-            </label>
+            <div className="phone-field">
+              <label className="field-label" htmlFor="signup-phone">Phone <span className="optional-label">(optional)</span></label>
+              <div className="phone-input-row">
+                <select
+                  aria-label="Phone country calling code"
+                  value={phoneCountryCode}
+                  onChange={(event) => setPhoneCountryCode(event.target.value)}
+                >
+                  {callingCodes.map(([country, countryName, code]) => (
+                    <option key={`${country}-${code}`} value={code}>{country} {code} · {countryName}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  id="signup-phone"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="Phone number"
+                  autoComplete="tel-national"
+                  inputMode="tel"
+                />
+              </div>
+              <span className="phone-help">Choose your country code and enter your number without the country prefix.</span>
+            </div>
           )}
 
           {!confirmingEmail && <label>
             <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-            />
+            <div className="password-input-row">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </label>}
 
           {confirmingEmail && <label>

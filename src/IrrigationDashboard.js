@@ -20,26 +20,22 @@ function App() {
 
   const [remaining,setRemaining] =useState(0);
 
+  const [devices, setDevices] = useState([]);
+
   const BASE_URL =
   "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
 
-  const API_URL =
-    `${BASE_URL}/latest-data`;
-
-  const HISTORY_URL =
-    `${BASE_URL}/history`;
-
-  const CONTROL_URL =
-    `${BASE_URL}/control`;
-
-  const SETTINGS_URL =
-    `${BASE_URL}/settings`;
-
-  const PUMP_STATUS_URL =
- `${BASE_URL}/pumpStatus`;
-
- const WATERING_HISTORY_URL =
-  `${BASE_URL}/watering-history`;
+  const deviceQuery = selectedDeviceId
+  ? `?deviceId=${encodeURIComponent(selectedDeviceId)}`
+  : "";
+  
+ const API_URL = `${BASE_URL}/latest-data${deviceQuery}`;
+const HISTORY_URL = `${BASE_URL}/history${deviceQuery}`;
+const CONTROL_URL = `${BASE_URL}/control${deviceQuery}`;
+const SETTINGS_URL = `${BASE_URL}/settings${deviceQuery}`;
+const PUMP_STATUS_URL = `${BASE_URL}/pumpStatus${deviceQuery}`;
+const WATERING_HISTORY_URL =
+  `${BASE_URL}/watering-history${deviceQuery}`;
 
  const PUMP_TIMEOUT_SECONDS = 60;
 
@@ -50,6 +46,51 @@ function App() {
     return fetch(url, { ...options, headers });
   }, [getAccessToken]);
   
+
+  
+useEffect(() => {
+  let active = true;
+
+  async function loadDevices() {
+    try {
+      const response = await authorizedFetch(`${BASE_URL}/devices`);
+
+      if (!response.ok) {
+        throw new Error("Unable to load devices.");
+      }
+
+      const result = await response.json();
+      const records = Array.isArray(result.devices)
+        ? result.devices
+        : [];
+
+      if (!active) return;
+
+      setDevices(records);
+
+      const selectedStillExists = records.some(
+        (device) => device.deviceId === selectedDeviceId
+      );
+
+      if (!selectedStillExists) {
+        selectDevice(records[0]?.deviceId || null);
+      }
+    } catch (error) {
+      console.error("Dashboard device list error:", error);
+    }
+  }
+
+  if (user) {
+    loadDevices();
+  } else {
+    setDevices([]);
+  }
+
+  return () => {
+    active = false;
+  };
+}, [authorizedFetch, user, selectedDeviceId, selectDevice]);
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -238,7 +279,7 @@ function getSafePumpStatus() {
 const safePumpStatus = getSafePumpStatus();
 
   if (!selectedDeviceId) {
-    const devices = Array.isArray(user?.devices) ? user.devices : [];
+    //devices state
     return (
       <section className="content-page">
         <div className="page-header"><div><p className="eyebrow">Device dashboard</p><h1>Select a device</h1></div></div>

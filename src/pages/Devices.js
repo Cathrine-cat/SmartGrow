@@ -31,7 +31,12 @@ export default function Devices() {
   const [password, setPassword] = useState("");
   const [verifiedId, setVerifiedId] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", location: "", password: "" });
+  const [editForm, setEditForm] = useState({
+  name: "",
+  location: "",
+  currentPassword: "",
+  newPassword: "",
+});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -47,9 +52,9 @@ export default function Devices() {
   const loadDevices = useCallback(async () => {
     setLoading(true);
     try {
-      const url = new URL(DEVICES_URL);
-      url.searchParams.set("userId", user.sub || user.id);
-      const body = await responseBody(await authorizedFetch(url.toString()));
+      const body = await responseBody(
+      await authorizedFetch(DEVICES_URL)
+    );
       const records = body.devices || body.items || body.Items || body;
       const safeRecords = Array.isArray(records) ? records.map(safeDevice) : [];
       setDevices(safeRecords);
@@ -115,59 +120,117 @@ export default function Devices() {
     }
   }
 
-  async function handleRemoveDevice(id) {
-    setBusy(true);
-    setMessage("");
-    try {
-      await responseBody(await authorizedFetch(DEVICES_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "remove", deviceId: id }),
-      }));
-      await removeDevice(id);
-      setDevices((current) => current.filter((item) => deviceIdOf(item) !== id));
-      setMessage("Device removed.");
-      setMessageType("success");
-    } catch (error) {
-      setMessageType("error");
-      setMessage(error.message || "Unable to remove device.");
-    } finally {
-      setBusy(false);
-    }
+  
+async function handleRemoveDevice(id) {
+  if (!window.confirm(`Unlink device ${id} from your account?`)) {
+    return;
   }
+
+  setBusy(true);
+  setMessage("");
+
+  try {
+    await responseBody(
+      await authorizedFetch(
+        `${DEVICES_URL}/${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      )
+    );
+
+    await removeDevice(id);
+    setDevices((current) =>
+      current.filter((item) => deviceIdOf(item) !== id)
+    );
+
+    if (selectedDeviceId === id) {
+      const remainingDevices = devices.filter(
+        (item) => deviceIdOf(item) !== id
+      );
+      selectDevice(
+        remainingDevices.length
+          ? deviceIdOf(remainingDevices[0])
+          : null
+      );
+    }
+
+    setMessage("Device unlinked successfully.");
+    setMessageType("success");
+  } catch (error) {
+    setMessageType("error");
+    setMessage(error.message || "Unable to unlink device.");
+  } finally {
+    setBusy(false);
+  }
+}
+
 
   function beginEdit(device) {
-    const id = deviceIdOf(device);
-    setEditingId(id);
-    setEditForm({ name: device?.name || device?.Name || "", location: device?.location || device?.Location || "", password: "" });
-  }
+  const id = deviceIdOf(device);
 
-  async function saveDevice(event) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage("");
-    const payload = { action: "update", deviceId: editingId, name: editForm.name.trim(), location: editForm.location.trim() };
-    if (editForm.password) payload.password = editForm.password;
-    try {
-      const body = await responseBody(await authorizedFetch(DEVICES_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }));
-      const updated = safeDevice(body.device || { ...devices.find((item) => deviceIdOf(item) === editingId), ...payload });
-      delete updated.action;
-      delete updated.password;
-      setDevices((current) => current.map((item) => deviceIdOf(item) === editingId ? updated : item));
-      setEditingId(null);
-      setMessage("Device details updated.");
-      setMessageType("success");
-    } catch (error) {
-      setMessageType("error");
-      setMessage(error.message || "Unable to update device.");
-    } finally {
-      setBusy(false);
+  setEditingId(id);
+  setEditForm({
+    name: device?.name || device?.Name || "",
+    location: device?.location || device?.Location || "",
+    currentPassword: "",
+    newPassword: "",
+  });
+}
+
+  
+async function saveDevice(event) {
+  event.preventDefault();
+  setBusy(true);
+  setMessage("");
+
+  try {
+    const payload = {
+      name: editForm.name.trim(),
+      location: editForm.location.trim(),
+    };
+
+    if (editForm.newPassword) {
+      if (!editForm.currentPassword) {
+        throw new Error("Enter the current device password.");
+      }
+
+      if (editForm.newPassword.length < 12) {
+        throw new Error("The new password must be at least 12 characters.");
+      }
+
+      payload.currentPassword = editForm.currentPassword;
+      payload.newPassword = editForm.newPassword;
     }
+
+    const body = await responseBody(
+      await authorizedFetch(
+        `${DEVICES_URL}/${encodeURIComponent(editingId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      )
+    );
+
+    const updated = safeDevice(body.device);
+
+    setDevices((current) =>
+      current.map((item) =>
+        deviceIdOf(item) === editingId ? updated : item
+      )
+    );
+
+    setEditingId(null);
+    setMessage("Device details updated.");
+    setMessageType("success");
+  } catch (error) {
+    setMessageType("error");
+    setMessage(error.message || "Unable to update device.");
+  } finally {
+    setBusy(false);
   }
+}
+
 
   return (
     <section className="content-page">
@@ -206,7 +269,41 @@ export default function Devices() {
                     {isEditing && <form className="device-form device-edit-form" onSubmit={saveDevice}>
                       <label><span>Name</span><input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} /></label>
                       <label><span>Location</span><input value={editForm.location} onChange={(event) => setEditForm({ ...editForm, location: event.target.value })} /></label>
-                      <label><span>New device password (optional)</span><input type="password" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} autoComplete="new-password" /></label>
+                      <label>
+                        <span>Current device password</span>
+                        <input
+                          type="password"
+                          value={editForm.currentPassword}
+                          onChange={(event) =>
+                            setEditForm({
+                              ...editForm,
+                              currentPassword: event.target.value,
+                            })
+                          }
+                          autoComplete="current-password"
+                          disabled={busy}
+                        />
+                      </label>
+
+                      <label>
+                        <span>New device password (optional)</span>
+                        <input
+                          type="password"
+                          value={editForm.newPassword}
+                          onChange={(event) =>
+                            setEditForm({
+                              ...editForm,
+                              newPassword: event.target.value,
+                            })
+                          }
+                          autoComplete="new-password"
+                          minLength={12}
+                          disabled={busy}
+                        />
+                        <small>
+                          Leave both password fields empty if you only want to edit the name or location.
+                        </small>
+                      </label>
                       <button type="submit" disabled={busy}>Save changes</button>
                       <button type="button" className="ghost-button" onClick={() => setEditingId(null)}>Cancel</button>
                     </form>}

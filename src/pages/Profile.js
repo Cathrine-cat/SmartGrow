@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
+import { callingCodes, splitE164Phone, toE164Phone } from "../utils/phone";
+import useDeviceCount from "../hooks/useDeviceCount";
 
 const emptyState = {
   name: "",
@@ -8,8 +10,10 @@ const emptyState = {
 };
 
 export default function Profile() {
+  const deviceCount = useDeviceCount();
   const { user, updateProfile, refreshProfile } = useAuth();
   const [form, setForm] = useState(emptyState);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+40");
   const [databaseProfile, setDatabaseProfile] = useState(null);
   const [status, setStatus] = useState("");
   const [statusType, setStatusType] = useState("success");
@@ -24,11 +28,13 @@ export default function Profile() {
     refreshProfile()
       .then((profile) => {
         if (!cancelled) {
+          const phoneParts = splitE164Phone(profile.phone);
           setDatabaseProfile(profile);
+          setPhoneCountryCode(phoneParts.countryCode);
           setForm({
             name: profile.name || "",
             email: profile.email || "",
-            phone: profile.phone || "",
+            phone: phoneParts.localNumber,
           });
         }
       })
@@ -56,15 +62,18 @@ export default function Profile() {
     setSaving(true);
 
     try {
+      const phone = toE164Phone(form.phone, phoneCountryCode);
       const updatedProfile = await updateProfile({
         name: form.name,
-        phone: form.phone,
+        phone,
       });
+      const phoneParts = splitE164Phone(updatedProfile.phone);
       setDatabaseProfile(updatedProfile);
+      setPhoneCountryCode(phoneParts.countryCode);
       setForm({
         name: updatedProfile.name || "",
         email: updatedProfile.email || user?.email || "",
-        phone: updatedProfile.phone || "",
+        phone: phoneParts.localNumber,
       });
       setStatus("Your profile was updated successfully.");
     } catch (error) {
@@ -98,26 +107,44 @@ export default function Profile() {
               />
             </label>
 
-            <label>
-              <span>Email</span>
+            <label className="readonly-field">
+              <span>Email <span className="readonly-label">Verified · cannot be changed here</span></span>
               <input
                 type="email"
                 name="email"
                 value={form.email}
                 readOnly
+                aria-readonly="true"
+                aria-describedby="email-readonly-help"
               />
             </label>
-            <p className="auth-subtitle">This is your verified sign-in email.</p>
+            <p id="email-readonly-help" className="field-help">This is your verified sign-in email.</p>
 
-            <label>
-              <span>Phone</span>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-              />
-            </label>
+            <div className="phone-field">
+              <label htmlFor="profile-phone" className="field-label">Phone <span className="optional-label">(optional)</span></label>
+              <div className="phone-input-row">
+                <select
+                  aria-label="Phone country calling code"
+                  value={phoneCountryCode}
+                  onChange={(event) => setPhoneCountryCode(event.target.value)}
+                >
+                  {callingCodes.map(([country, countryName, code]) => (
+                    <option key={`${country}-${code}`} value={code}>{country} {code} · {countryName}</option>
+                  ))}
+                </select>
+                <input
+                  id="profile-phone"
+                  type="tel"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="Phone number"
+                  autoComplete="tel-national"
+                  inputMode="tel"
+                />
+              </div>
+              <span className="phone-help">Choose your country code and enter your number without the country prefix.</span>
+            </div>
 
             {status && <p className={statusType === "error" ? "error-box" : "success-text"} role="status">{status}</p>}
 
@@ -133,11 +160,7 @@ export default function Profile() {
             <li>Name: {loadingProfile ? "Loading..." : (databaseProfile?.name || "Not set")}</li>
             <li>Email: {user?.email || "Not set"}</li>
             <li>Phone: {loadingProfile ? "Loading..." : (databaseProfile?.phone || "Not set")}</li>
-            <li>Linked devices: {loadingProfile
-              ? "Loading..."
-              : databaseProfile?.devicesLoaded === false
-                ? "Unavailable"
-                : (databaseProfile?.devices?.length ?? 0)}</li>
+            <li>Linked devices: {deviceCount}</li>
           </ul>
         </div>
       </div>

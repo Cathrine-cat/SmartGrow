@@ -1,10 +1,12 @@
 
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { getDisplayName, useAuth } from "../auth/AuthContext";
+import useDeviceCount from "../hooks/useDeviceCount";
 
 export default function Home() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
+  const deviceCount = useDeviceCount();
 
   if (loading) {
     return <p>Checking your login...</p>;
@@ -30,7 +32,7 @@ export default function Home() {
         <div className="stats-grid">
           <div className="stat-card">
             <span>Devices</span>
-            <strong>{user.devices?.length || 0}</strong>
+            <strong>{deviceCount}</strong>
           </div>
           <div className="stat-card">
             <span>Zone status</span>

@@ -129,14 +129,12 @@ export function AuthProvider({ children }) {
 
     try {
       const token = await getAccessToken();
-      const devicesUrl = new URL(DEVICES_URL);
-      devicesUrl.searchParams.set("userId", cognitoProfile.sub);
       // Load the database profile during auth initialization so its name is
       // ready before protected pages render. Device API failures must not
       // discard a successfully loaded profile.
       const [profileResult, devicesResult] = await Promise.allSettled([
         getUserProfile(cognitoProfile, token),
-        fetch(devicesUrl.toString(), {
+        fetch(DEVICES_URL, {
           headers: { Authorization: `Bearer ${token}` },
         }).then(async (response) => {
           if (!response.ok) {
@@ -181,11 +179,9 @@ export function AuthProvider({ children }) {
     if (!currentUser) throw new Error("Please log in before loading your profile.");
 
     const token = await getAccessToken();
-    const devicesUrl = new URL(DEVICES_URL);
-    devicesUrl.searchParams.set("userId", currentUser.sub || currentUser.id);
     const [profileResult, devicesResult] = await Promise.allSettled([
       getUserProfile(currentUser, token),
-      fetch(devicesUrl.toString(), { headers: { Authorization: `Bearer ${token}` } })
+      fetch(DEVICES_URL, { headers: { Authorization: `Bearer ${token}` } })
         .then(async (response) => {
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response.json();
