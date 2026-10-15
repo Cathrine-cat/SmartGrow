@@ -29,18 +29,24 @@ export default function Devices() {
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState("");
   const [password, setPassword] = useState("");
+  const [showClaimPassword, setShowClaimPassword] = useState(false);
   const [verifiedId, setVerifiedId] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
-  name: "",
-  location: "",
-  currentPassword: "",
-  newPassword: "",
-});
+    name: "",
+    location: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
+  const [deviceMessage, setDeviceMessage] = useState("");
+  const [deviceMessageType, setDeviceMessageType] = useState("success");
+  const [editError, setEditError] = useState("");
+  const [showEditPasswords, setShowEditPasswords] = useState(false);
 
   const authorizedFetch = useCallback(async (url, options = {}) => {
     const token = await getAccessToken();
@@ -80,7 +86,9 @@ export default function Devices() {
       const url = new URL(`${DEVICES_URL}/verify`);
       url.searchParams.set("deviceId", id);
       const body = await responseBody(await authorizedFetch(url.toString()));
-      if (body.exists === false || body.found === false) throw new Error("No device with that ID was found.");
+      if (body.exists === false || body.found === false) {
+        throw new Error("This device was not found or is not available to claim. It may already be linked or not fully provisioned.");
+      }
       setVerifiedId(id);
       setMessage("Device found. Enter its device password to link it to your account.");
       setMessageType("success");
@@ -127,7 +135,7 @@ async function handleRemoveDevice(id) {
   }
 
   setBusy(true);
-  setMessage("");
+  setDeviceMessage("");
 
   try {
     await responseBody(
@@ -153,11 +161,11 @@ async function handleRemoveDevice(id) {
       );
     }
 
-    setMessage("Device unlinked successfully.");
-    setMessageType("success");
+    setDeviceMessage("Device unlinked successfully.");
+    setDeviceMessageType("success");
   } catch (error) {
-    setMessageType("error");
-    setMessage(error.message || "Unable to unlink device.");
+    setDeviceMessageType("error");
+    setDeviceMessage(error.message || "Unable to unlink device.");
   } finally {
     setBusy(false);
   }
@@ -173,32 +181,49 @@ async function handleRemoveDevice(id) {
     location: device?.location || device?.Location || "",
     currentPassword: "",
     newPassword: "",
+    confirmNewPassword: "",
   });
+  setEditError("");
+  setShowEditPasswords(false);
 }
 
   
 async function saveDevice(event) {
   event.preventDefault();
   setBusy(true);
-  setMessage("");
+  setEditError("");
+  setDeviceMessage("");
 
   try {
-    const payload = {
-      name: editForm.name.trim(),
-      location: editForm.location.trim(),
-    };
+    const device = devices.find((item) => deviceIdOf(item) === editingId);
+    const originalName = device?.name || device?.Name || "";
+    const originalLocation = device?.location || device?.Location || "";
+    const nextName = editForm.name.trim();
+    const nextLocation = editForm.location.trim();
+    const payload = {};
 
-    if (editForm.newPassword) {
+    if (nextName !== originalName) {
+      if (!nextName) throw new Error("Device name cannot be empty.");
+      payload.name = nextName;
+    }
+    if (nextLocation !== originalLocation) payload.location = nextLocation;
+
+    if (editForm.newPassword || editForm.confirmNewPassword) {
       if (!editForm.currentPassword) {
         throw new Error("Enter the current device password.");
       }
-
-      if (editForm.newPassword.length < 12) {
-        throw new Error("The new password must be at least 12 characters.");
+      if (!editForm.newPassword || !editForm.confirmNewPassword) {
+        throw new Error("Enter and confirm the new device password.");
+      }
+      if (editForm.newPassword !== editForm.confirmNewPassword) {
+        throw new Error("The new passwords do not match.");
       }
 
       payload.currentPassword = editForm.currentPassword;
       payload.newPassword = editForm.newPassword;
+    }
+    if (!Object.keys(payload).length) {
+      throw new Error("Change the name, location, or password before saving.");
     }
 
     const body = await responseBody(
@@ -221,11 +246,10 @@ async function saveDevice(event) {
     );
 
     setEditingId(null);
-    setMessage("Device details updated.");
-    setMessageType("success");
+    setDeviceMessage("Device details updated.");
+    setDeviceMessageType("success");
   } catch (error) {
-    setMessageType("error");
-    setMessage(error.message || "Unable to update device.");
+    setEditError(error.message || "Unable to update device.");
   } finally {
     setBusy(false);
   }
@@ -246,9 +270,10 @@ async function saveDevice(event) {
           ) : (
             <form className="device-form" onSubmit={handleClaimDevice}>
               <p>Device <strong>{verifiedId}</strong> was found.</p>
-              <label><span>Device password</span><input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /></label>
+              <label><span>Device password</span><input required type={showClaimPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></label>
+              <button type="button" className="ghost-button" onClick={() => setShowClaimPassword((shown) => !shown)}>{showClaimPassword ? "Hide password" : "Show password"}</button>
               <button type="submit" className="submit-button" disabled={busy}>{busy ? "Linking..." : "Verify and add"}</button>
-              <button type="button" className="ghost-button" onClick={() => { setVerifiedId(""); setPassword(""); }}>Use another ID</button>
+              <button type="button" className="ghost-button" onClick={() => { setVerifiedId(""); setPassword(""); setShowClaimPassword(false); }}>Use another ID</button>
             </form>
           )}
           {message && <p className={messageType === "error" ? "error-box" : "success-text"} role="status">{message}</p>}
@@ -272,7 +297,7 @@ async function saveDevice(event) {
                       <label>
                         <span>Current device password</span>
                         <input
-                          type="password"
+                          type={showEditPasswords ? "text" : "password"}
                           value={editForm.currentPassword}
                           onChange={(event) =>
                             setEditForm({
@@ -288,7 +313,7 @@ async function saveDevice(event) {
                       <label>
                         <span>New device password (optional)</span>
                         <input
-                          type="password"
+                          type={showEditPasswords ? "text" : "password"}
                           value={editForm.newPassword}
                           onChange={(event) =>
                             setEditForm({
@@ -297,15 +322,28 @@ async function saveDevice(event) {
                             })
                           }
                           autoComplete="new-password"
-                          minLength={12}
                           disabled={busy}
                         />
-                        <small>
-                          Leave both password fields empty if you only want to edit the name or location.
-                        </small>
                       </label>
+                      <label>
+                        <span>Confirm new device password</span>
+                        <input
+                          type={showEditPasswords ? "text" : "password"}
+                          value={editForm.confirmNewPassword}
+                          onChange={(event) =>
+                            setEditForm({
+                              ...editForm,
+                              confirmNewPassword: event.target.value,
+                            })
+                          }
+                          autoComplete="new-password"
+                          disabled={busy}
+                        />
+                      </label>
+                      <button type="button" className="ghost-button" onClick={() => setShowEditPasswords((shown) => !shown)}>{showEditPasswords ? "Hide passwords" : "Show passwords"}</button>
+                      {editError && <p className="error-box" role="alert">{editError}</p>}
                       <button type="submit" disabled={busy}>Save changes</button>
-                      <button type="button" className="ghost-button" onClick={() => setEditingId(null)}>Cancel</button>
+                      <button type="button" className="ghost-button" onClick={() => { setEditingId(null); setEditError(""); setShowEditPasswords(false); }}>Cancel</button>
                     </form>}
                   </div>
                   {!isEditing && <div className="device-actions">
@@ -317,6 +355,7 @@ async function saveDevice(event) {
               })}
             </div>
           ) : <p>No linked devices. Add one using its device ID and password.</p>}
+          {deviceMessage && <p className={deviceMessageType === "error" ? "error-box" : "success-text"} role={deviceMessageType === "error" ? "alert" : "status"}>{deviceMessage}</p>}
           {selectedDeviceId && <Link to="/dashboard" className="btn btn-primary device-link">View selected dashboard</Link>}
         </div>
       </div>
