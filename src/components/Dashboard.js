@@ -84,11 +84,14 @@ function Dashboard({ data,
 
           <input
             type="number"
+            min="0"
+            step="1"
             placeholder="Duration (seconds)"
             value={manualDuration}
-            onChange={(e) =>
-              setManualDuration(e.target.value)
-            }
+            onChange={(e) => {
+              const value = e.target.value;
+              setManualDuration(value === "" ? "" : String(Math.max(0, Math.floor(Number(value) || 0))));
+            }}
           />
 
           <button onClick={activatePump}>

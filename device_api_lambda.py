@@ -130,6 +130,7 @@ def public_device(item):
         "location",
         "createdAt",
         "modifiedAt",
+        "alertSettings",
     )
     return {field: item[field] for field in allowed_fields if field in item}
 
@@ -248,7 +249,7 @@ def lambda_handler(event, context):
                 return response(400, {"message": "Invalid device ID"})
 
             body = read_body(event)
-            allowed = {"name", "location", "currentPassword", "newPassword"}
+            allowed = {"name", "location", "currentPassword", "newPassword", "alertSettings"}
             if set(body) - allowed:
                 return response(400, {"message": "Unsupported field supplied"})
 
@@ -264,6 +265,24 @@ def lambda_handler(event, context):
                 if not isinstance(location, str) or len(location.strip()) > 200:
                     return response(400, {"message": "Location must be at most 200 characters"})
                 updates["location"] = location.strip()
+
+            if "alertSettings" in body:
+                settings = body["alertSettings"]
+                allowed_thresholds = {"soilMin", "soilMax", "temperatureMin", "temperatureMax"}
+                if not isinstance(settings, dict) or set(settings) - allowed_thresholds:
+                    return response(400, {"message": "Invalid alert settings."})
+                normalized = {}
+                for field, value in settings.items():
+                    if value in (None, ""):
+                        continue
+                    try:
+                        number = float(value)
+                    except (TypeError, ValueError):
+                        return response(400, {"message": f"{field} must be a number."})
+                    if field.startswith("soil") and not 0 <= number <= 100:
+                        return response(400, {"message": f"{field} must be between 0 and 100."})
+                    normalized[field] = number
+                updates["alertSettings"] = normalized
 
             changing_password = "newPassword" in body
             current_hash = None

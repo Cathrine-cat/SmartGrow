@@ -1,29 +1,158 @@
-export default function Alerts() {
-  return (
-    <section className="content-page">
-      <div className="page-header">
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
+const EMPTY_RULES = { soilMin: "", soilMax: "", temperatureMin: "", temperatureMax: "" };
+const deviceIdOf = (device) => typeof device === "string" ? device : device?.deviceId || device?.id || "";
+const deviceNameOf = (device) => typeof device === "string" ? "Unnamed device" : device?.name || device?.Name || "Unnamed device";
+const timeOf = (event) => event.timestamp || event.time || event.createdAt || event.date;
+
+async function readJson(response) {
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.message || body.error || `Request failed (${response.status}).`);
+  return body;
+}
+
+export default function PlantJournal() {
+  const { selectedDeviceId, selectDevice, getAccessToken } = useAuth();
+  const [devices, setDevices] = useState([]);
+  const [readings, setReadings] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [rules, setRules] = useState(EMPTY_RULES);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const authorizedFetch = useCallback(async (url, options = {}) => {
+    const token = await getAccessToken();
+    const headers = new Headers(options.headers || {});
+    headers.set("Authorization", `Bearer ${token}`);
+    return fetch(url, { ...options, headers });
+  }, [getAccessToken]);
+
+  useEffect(() => {
+    let active = true;
+    authorizedFetch(`${API_BASE_URL}/devices`).then(readJson).then((body) => {
+      if (!active) return;
+      const list = Array.isArray(body.devices) ? body.devices : [];
+      setDevices(list);
+      const ids = list.map(deviceIdOf);
+      selectDevice((current) => ids.includes(current) ? current : ids[0] || null);
+    }).catch((loadError) => { if (active) setError(loadError.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [authorizedFetch, selectDevice]);
+
+  useEffect(() => {
+    if (!selectedDeviceId) { setReadings(null); setEvents([]); setRules(EMPTY_RULES); return undefined; }
+    let active = true;
+    const endpoint = (path) => { const url = new URL(`${API_BASE_URL}/${path}`); url.searchParams.set("deviceId", selectedDeviceId); return url.toString(); };
+    setError("");
+    Promise.allSettled([
+      authorizedFetch(endpoint("latest-data")).then(readJson),
+      authorizedFetch(endpoint("watering-history")).then(readJson),
+      authorizedFetch(endpoint("devices")).then(readJson),
+    ]).then(([latest, history, deviceResponse]) => {
+      if (!active) return;
+      if (latest.status === "fulfilled") setReadings(latest.value);
+      if (history.status === "fulfilled") {
+        const list = Array.isArray(history.value) ? history.value : history.value.items || history.value.history || history.value.records || [];
+        setEvents(list.slice().sort((a, b) => new Date(timeOf(b) || 0) - new Date(timeOf(a) || 0)));
+      }
+      if (deviceResponse.status === "fulfilled") {
+        const device = (deviceResponse.value.devices || []).find((item) => deviceIdOf(item) === selectedDeviceId);
+        setRules({ ...EMPTY_RULES, ...(device?.alertSettings || {}) });
+      }
+    });
+    return () => { active = false; };
+  }, [authorizedFetch, selectedDeviceId]);
+
+  async function saveJournal(event) {
+    event.preventDefault();
+    if (!selectedDeviceId) return;
+    setSaving(true); setError(""); setMessage("");
+    try {
+      await readJson(await authorizedFetch(`${API_BASE_URL}/devices/${encodeURIComponent(selectedDeviceId)}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alertSettings: rules }),
+      }));
+      setMessage("Journal settings saved for this device.");
+    } catch (saveError) {
+      setError(`${saveError.message} Deploy the updated device API to enable saved journal settings.`);
+    } finally { setSaving(false); }
+  }
+
+  const selectedDevice = devices.find((device) => deviceIdOf(device) === selectedDeviceId);
+  const currentAlerts = [
+    ["Soil moisture", readings?.soil, rules.soilMin, rules.soilMax, "%"],
+    ["Temperature", readings?.temperature, rules.temperatureMin, rules.temperatureMax, "°C"],
+  ].flatMap(([label, value, min, max, unit]) => {
+    if (value == null) return [];
+    const numeric = Number(value);
+    if (min !== "" && numeric < Number(min)) return [`${label} is below your ${min}${unit} minimum (${numeric}${unit}).`];
+    if (max !== "" && numeric > Number(max)) return [`${label} is above your ${max}${unit} maximum (${numeric}${unit}).`];
+    return [];
+  });
+
+  return <section className="content-page journal-page">
+    <div className="page-header"><div><p className="eyebrow">Your garden’s memory</p><h1>Plant journal</h1><p className="journal-intro">A device-by-device record of watering, changing conditions, and the things you want to watch.</p></div>
+      {devices.length > 0 && <label className="dashboard-device-select"><span>Choose a device</span><select value={selectedDeviceId || ""} onChange={(event) => selectDevice(event.target.value)}>{devices.map((device) => <option key={deviceIdOf(device)} value={deviceIdOf(device)}>{deviceNameOf(device)}</option>)}</select></label>}
+    </div>
+    {error && <p className="error-box" role="alert">{error}</p>}{message && <p className="success-text" role="status">{message}</p>}
+    {loading ? <div className="info-panel"><p>Loading your garden journal…</p></div> : !devices.length ? <div className="info-panel"><h2>Start your garden story</h2><p>Link a sensor to see readings, watering activity, and set the conditions you want to keep an eye on.</p><Link to="/devices" className="btn btn-primary">Add a device</Link></div> : <>
+      <div className="journal-summary">
         <div>
-          <p className="eyebrow">Monitoring</p>
-          <h1>Alerts</h1>
+          <span>Selected device</span>
+          <strong>{selectedDevice ? deviceNameOf(selectedDevice) : "Your garden"}</strong>
         </div>
-      </div>
-
-      <div className="alert-list">
-        <div className="alert-item warning">
-          <strong>Low moisture</strong>
-          <span>Zone A has dropped below the threshold for 18 minutes.</span>
-        </div>
-
-        <div className="alert-item ok">
-          <strong>Pump status</strong>
-          <span>System is running normally and within safe operating range.</span>
-        </div>
-
-        <div className="alert-item info">
-          <strong>Maintenance reminder</strong>
-          <span>Check filter cartridge in 3 days.</span>
-        </div>
-      </div>
-    </section>
-  );
+        <div>
+          <span>Latest soil moisture</span>
+          <strong>{readings?.soil ?? "—"}{readings?.soil != null ? "%" : ""}</strong>
+          </div>
+          <div>
+            <span>Watering events</span>
+            <strong>{events.length}</strong>
+            </div>
+          </div>
+      <div className="journal-columns">
+        <section className="info-panel journal-timeline">
+          <p className="eyebrow">Recent activity</p>
+          <h2>Watering history</h2>
+        {events.length ? 
+        <ol className="timeline">{events.slice(0, 12).map((item, index) => 
+          <li key={`${timeOf(item) || index}-${index}`}>
+            <span className="timeline-dot">💧</span>
+            <div>
+              <strong>{item.event || item.action || item.source || "Watering event"}</strong>
+              <p>{timeOf(item) ? new Date(timeOf(item)).toLocaleString() : "Time not recorded"}{item.duration ? ` · ${item.duration}s` : ""}</p>
+            </div>
+          </li>)}
+        </ol> : 
+        <p>No watering events recorded for this device yet.</p>}
+        <div className="journal-reading-note"><strong>Latest sensor check</strong><p>Soil {readings?.soil ?? "—"}% · {readings?.temperature ?? "—"}°C · Humidity {readings?.humidity ?? "—"}%</p><small>{readings?.timestamp ? new Date(readings.timestamp).toLocaleString() : "No timestamp available"}</small></div>
+      </section>
+      <section className="info-panel journal-settings">
+        <p className="eyebrow">A gentle nudge</p>
+        <h2>What should we watch for?</h2>
+        <p>Set device-specific limits for soil moisture and temperature. When readings cross a limit, the journal will flag them here.</p>
+        {currentAlerts.length > 0 && 
+        <div className="journal-alerts" role="status">{currentAlerts.map((alert) => <p key={alert}>🔔 {alert}</p>)}</div>}
+        <form onSubmit={saveJournal} className="journal-form">
+          <fieldset>
+            <legend>Soil moisture (%)</legend>
+              <label>Below <input type="number" min="0" max="100" value={rules.soilMin} onChange={(e) => setRules((current) => ({ ...current, soilMin: e.target.value }))} placeholder="No minimum" /></label>
+              <label>Above <input type="number" min="0" max="100" value={rules.soilMax} onChange={(e) => setRules((current) => ({ ...current, soilMax: e.target.value }))} placeholder="No maximum" /></label>
+          </fieldset>
+          <fieldset>
+            <legend>Temperature (°C)</legend>
+              <label>Below <input type="number" value={rules.temperatureMin} onChange={(e) => setRules((current) => ({ ...current, temperatureMin: e.target.value }))} placeholder="No minimum" /></label>
+              <label>Above <input type="number" value={rules.temperatureMax} onChange={(e) => setRules((current) => ({ ...current, temperatureMax: e.target.value }))} placeholder="No maximum" /></label>
+          </fieldset>
+          <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save for this device"}</button>
+        </form>
+      </section></div>
+    </>}
+  </section>;
 }

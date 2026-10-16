@@ -142,7 +142,7 @@ export default function PlantAssistant() {
       <div className="page-header">
         <div>
           <p className="eyebrow">Plant care</p>
-          <h1>Plant assistant</h1>
+          <h1><span className="assistant-title-icon" aria-hidden="true">🌵</span> Sprout</h1>
           <p className="assistant-intro">Ask about watering, soil moisture, light, or symptoms. Include the plant type and growing conditions for more useful guidance.</p>
         </div>
         {devices.length > 1 && (
@@ -171,11 +171,11 @@ export default function PlantAssistant() {
           <div className="assistant-messages" aria-live="polite" aria-label="Conversation">
             {messages.map((message, index) => (
               <div key={`${index}-${message.role}`} className={`assistant-message ${message.role === "user" ? "assistant-message-user" : "assistant-message-bot"}`}>
-                <span className="assistant-message-label">{message.role === "user" ? "You" : "Plant assistant"}</span>
+                <span className="assistant-message-label">{message.role === "user" ? "You" : "Sprout 🌵"}</span>
                 <p>{message.content}</p>
               </div>
             ))}
-            {sending && <div className="assistant-message assistant-message-bot"><span className="assistant-message-label">Plant assistant</span><p>Thinking…</p></div>}
+            {sending && <div className="assistant-message assistant-message-bot"><span className="assistant-message-label">Sprout 🌵</span><p>Thinking…</p></div>}
           </div>
           <form className="assistant-composer" onSubmit={sendMessage}>
             <label htmlFor="plant-question">Your question</label>

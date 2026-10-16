@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { callingCodes, toE164Phone } from "../utils/phone";
 
@@ -13,7 +13,8 @@ const initialForm = {
 
 export default function Login() {
   const { user, login, register, confirmRegistration, resendConfirmationCode } = useAuth();
-  const [mode, setMode] = useState("login");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState(searchParams.get("mode") === "register" ? "signup" : "login");
   const [showPassword, setShowPassword] = useState(false);
   const [phoneCountryCode, setPhoneCountryCode] = useState("+40");
   const [confirmingEmail, setConfirmingEmail] = useState(false);

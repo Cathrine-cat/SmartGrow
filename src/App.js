@@ -9,7 +9,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import ProtectedLayout from "./auth/ProtectedLayout";
 
 import IrrigationDashboard from "./IrrigationDashboard";
-import Alerts from "./pages/Alerts";
+import PlantJournal from "./pages/Alerts";
 import PlantAssistant from "./pages/PlantAssistant";
 
 export default function App() {
@@ -25,7 +25,8 @@ export default function App() {
             <Route path="/dashboard" element={<IrrigationDashboard />} />
             <Route path="/devices" element={<Devices />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/journal" element={<PlantJournal />} />
+            <Route path="/alerts" element={<PlantJournal />} />
             <Route path="/assistant" element={<PlantAssistant />} />
           </Route>
         </Route>

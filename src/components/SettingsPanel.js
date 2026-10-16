@@ -112,19 +112,23 @@ function SettingsPanel({
         Soil Moisture Threshold (%)
 
         <input
-          type="range"
+          type="number"
           min="0"
           max="100"
+          step="1"
+          inputMode="numeric"
           value={settings.thresholdMoisture}
-          onChange={(e) =>
-            setSettings({
-              ...settings,
-              thresholdMoisture: Number(e.target.value)
-            })
-          }
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === "") {
+              setSettings({ ...settings, thresholdMoisture: "" });
+            } else if (/^\d+$/.test(value)) {
+              setSettings({ ...settings, thresholdMoisture: Math.min(100, Number(value)) });
+            }
+          }}
         />
 
-      <span>{settings.thresholdMoisture}%</span>
+      <span>Enter a whole number from 0 to 100.</span>
       </label>
 
       <br />
