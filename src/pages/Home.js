@@ -92,7 +92,7 @@ export default function Home() {
 
   return (
     <main className="home-page">
-      <header className="site-header"><Link to="/" className="site-brand"><span className="brand-mark">✿</span><span>SmartGrow</span></Link>
+      <header className="site-header"><Link to="/" className="site-brand"><img className="brand-mark plant-logo" src="/images/plant.png" alt="" aria-hidden="true" /><span>SmartGrow</span></Link>
         <nav className="site-nav" aria-label="Main navigation"><a href="#features">Features</a><a href="#how-it-works">How it works</a><Link to="/login" className="btn btn-secondary">Sign in</Link></nav>
       </header>
       <section className="hero-section">

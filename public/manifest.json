@@ -3,9 +3,9 @@
   "name": "SmartGrow Garden Monitor",
   "icons": [
     {
-      "src": "images/garden-mark.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "images/plant.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],

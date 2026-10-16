@@ -914,6 +914,7 @@ button:hover {
 .site-header { max-width: 1280px; padding-top: 24px; }
 .site-brand { color: #243c2c; }
 .brand-mark { border-radius: 50%; background: #dce9b8; color: #35533b; }
+.plant-logo { width: 38px; height: 38px; object-fit: contain; border-radius: 0; background: transparent; }
 .site-nav a:not(.btn) { font-size: .94rem; }
 .hero-section { max-width: 1280px; min-height: 620px; padding-top: 48px; padding-bottom: 90px; grid-template-columns: 1fr 1fr; gap: 64px; }
 .hero-copy h1 { max-width: 580px; font-size: clamp(3.2rem, 6vw, 5.2rem); letter-spacing: -.055em; line-height: 1.02; }
@@ -990,43 +991,43 @@ button:hover {
 .assistant-title-icon { display: inline-block; font-size: .78em; }
 
 /* Brighter garden accents and clear interactive states */
-.home-page { background: linear-gradient(180deg, #fff9e9 0%, #f6f8ec 46%, #f3f8f2 100%); }
-.home-page .eyebrow { color: #bd6c36; }
-.home-page .hero-copy h1 { color: #254d38; }
-.home-page .hero-copy h1::first-line { text-decoration-color: #efc46d; }
-.home-page .feature-card { border-color: rgba(190, 122, 66, .16); box-shadow: 0 15px 30px rgba(107, 78, 44, .09); }
-.home-page .feature-icon { display: inline-grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: #f7e7bb; }
-.home-page .feature-card:nth-child(2) .feature-icon { background: #dcebd4; }
-.home-page .feature-card:nth-child(3) .feature-icon { background: #d9edf0; }
-.home-page .feature-card:nth-child(4) .feature-icon { background: #f2ddce; }
-.home-page .btn-primary { background: linear-gradient(135deg, #f09a52, #d56e48); box-shadow: 0 14px 26px rgba(213, 110, 72, .24); }
-.home-page .btn-secondary { background: #e6f0ce; border-color: #cfdfb1; }
-.btn-primary:hover { background: linear-gradient(135deg, #e57b37, #ae4f3a); box-shadow: 0 18px 30px rgba(185, 85, 54, .32); }
-.btn-secondary:hover { color: #fff; background: #547c4a; border-color: #547c4a; box-shadow: 0 12px 24px rgba(55, 92, 58, .18); }
-.app-shell button:not(.toggle):not(.password-toggle):hover { background: #d87948; }
-.app-shell button:focus-visible, .home-page a:focus-visible { outline: 3px solid #e6b34c; outline-offset: 3px; }
-.journal-form button:hover, .signout-button:hover { background: #bc5b3b !important; }
+.home-page { background: linear-gradient(180deg, #f2f9e9 0%, #eaf5e6 46%, #eff8f0 100%); }
+.home-page .eyebrow { color: #43804d; }
+.home-page .hero-copy h1 { color: #1e4b34; }
+.home-page .hero-copy h1::first-line { text-decoration-color: #9bc968; }
+.home-page .feature-card { border-color: rgba(65, 125, 73, .2); box-shadow: 0 15px 30px rgba(41, 88, 49, .1); }
+.home-page .feature-icon { display: inline-grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: #e4f0c9; }
+.home-page .feature-card:nth-child(2) .feature-icon { background: #d6eccd; }
+.home-page .feature-card:nth-child(3) .feature-icon { background: #d2eee5; }
+.home-page .feature-card:nth-child(4) .feature-icon { background: #e3e7bd; }
+.home-page .btn-primary { background: linear-gradient(135deg, #58ad5e, #278347); box-shadow: 0 14px 26px rgba(53, 139, 67, .25); }
+.home-page .btn-secondary { background: #e5f2d8; border-color: #bad7ae; }
+.btn-primary:hover { background: linear-gradient(135deg, #388b46, #17653b); box-shadow: 0 18px 30px rgba(35, 111, 55, .34); }
+.btn-secondary:hover { color: #fff; background: #38834b; border-color: #38834b; box-shadow: 0 12px 24px rgba(43, 107, 57, .22); }
+.app-shell button:not(.toggle):not(.password-toggle):hover { background: #39854a; }
+.app-shell button:focus-visible, .home-page a:focus-visible { outline: 3px solid #88bd58; outline-offset: 3px; }
+.journal-form button:hover, .signout-button:hover { background: #286b3b !important; }
 
 .auth-page {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 12% 16%, rgba(240, 195, 112, .34), transparent 32%),
-    radial-gradient(ellipse at 88% 84%, rgba(111, 164, 104, .26), transparent 34%),
-    linear-gradient(145deg, #fff7e5 0%, #f1f5e7 52%, #e8f2e6 100%);
+    radial-gradient(ellipse at 12% 16%, rgba(174, 214, 117, .38), transparent 32%),
+    radial-gradient(ellipse at 88% 84%, rgba(81, 161, 91, .28), transparent 34%),
+    linear-gradient(145deg, #f3f9e8 0%, #eaf4e3 52%, #e2f1e5 100%);
 }
 .auth-card {
   position: relative;
-  border-color: rgba(173, 125, 69, .2);
-  border-top: 5px solid #d78a50;
-  background: rgba(255, 254, 248, .96);
+  border-color: rgba(75, 133, 77, .22);
+  border-top: 5px solid #65a852;
+  background: rgba(251, 255, 247, .97);
   box-shadow: 0 24px 60px rgba(80, 84, 54, .16);
 }
 .auth-card h1 { color: #254d38; }
-.auth-card .back-link { color: #b7673d; }
-.auth-toggle { background: #f3edda; }
-.auth-toggle .toggle.active { color: #fff; background: #4e8253; box-shadow: 0 8px 18px rgba(54, 100, 58, .2); }
-.auth-toggle .toggle:not(.active):hover { color: #a44f36; background: #f9e4c5; }
+.auth-card .back-link { color: #43804d; }
+.auth-toggle { background: #e8f1df; }
+.auth-toggle .toggle.active { color: #fff; background: #438d4e; box-shadow: 0 8px 18px rgba(54, 100, 58, .2); }
+.auth-toggle .toggle:not(.active):hover { color: #285f39; background: #d9ebce; }
 .auth-form input, .phone-input-row select {
   border-color: #d9dfca;
   background-color: #fffefa;
@@ -1037,14 +1038,14 @@ button:hover {
 }
 .auth-card .submit-button {
   border-radius: 12px;
-  background: linear-gradient(135deg, #ed9a56, #d56e48);
-  box-shadow: 0 12px 24px rgba(213, 110, 72, .22);
+  background: linear-gradient(135deg, #5eae59, #328049);
+  box-shadow: 0 12px 24px rgba(61, 131, 66, .24);
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
 .auth-card .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #dd7f3c, #b9533e);
-  box-shadow: 0 16px 28px rgba(185, 85, 54, .3);
+  background: linear-gradient(135deg, #408d48, #20633d);
+  box-shadow: 0 16px 28px rgba(40, 104, 53, .3);
 }
 .auth-card .password-toggle { border-color: #d9dfca; color: #4d7549; background: #f0f3e6; }
 .auth-card .password-toggle:hover { color: #fff; background: #547c4a; }

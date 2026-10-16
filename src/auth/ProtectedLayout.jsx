@@ -18,7 +18,7 @@ export default function ProtectedLayout() {
     <div className="app-shell">
       <header className="app-header">
         <div className="brand-block">
-          <span className="brand-mark">S</span>
+          <img className="brand-mark plant-logo" src="/images/plant.png" alt="" aria-hidden="true" />
           <span>SmartGrow</span>
         </div>
 
