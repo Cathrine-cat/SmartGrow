@@ -1,12 +1,52 @@
-"""GET /watering-history?deviceId=..."""
+import json
+import os
 
-from common import authorize_device, query_device_rows, requested_device_id, response, watering_table
+import boto3
+from boto3.dynamodb.conditions import Attr
+
+
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table(os.environ.get("WATERING_EVENTS_TABLE", "wateringEvents"))
+devices_table = dynamodb.Table(os.environ.get("DEVICES_TABLE", "Devices"))
+device_key_name = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
+
+
+def response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(body, default=str),
+    }
 
 
 def lambda_handler(event, context):
-    device_id = requested_device_id(event)
-    _, error = authorize_device(event, device_id)
-    if error:
-        return error
-    rows = query_device_rows(watering_table(), device_id, 200)
-    return response(200, {"deviceId": device_id, "items": rows})
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    user_id = claims.get("sub")
+    params = event.get("queryStringParameters") or {}
+    device_id = str(params.get("deviceId") or "").strip()
+
+    if not user_id:
+        return response(401, {"message": "Unauthorized"})
+    if not device_id:
+        return response(400, {"message": "deviceId is required"})
+
+    device = devices_table.get_item(Key={device_key_name: device_id}).get("Item")
+    if not device or device.get("userId") != user_id:
+        return response(404, {"message": "Device not found"})
+
+    items = []
+    last_key = None
+    while True:
+        scan_args = {"FilterExpression": Attr("id").eq(device_id)}
+        if last_key:
+            scan_args["ExclusiveStartKey"] = last_key
+        result = table.scan(**scan_args)
+        items.extend(result.get("Items", []))
+        last_key = result.get("LastEvaluatedKey")
+        if not last_key:
+            break
+
+    # Missing ids/timestamps are skipped; no matching events returns an empty list.
+    items = [item for item in items if item.get("id") == device_id and item.get("timestamp")]
+    items.sort(key=lambda item: str(item["timestamp"]), reverse=True)
+    return response(200, {"deviceId": device_id, "items": items[:200]})

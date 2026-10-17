@@ -1,54 +1,75 @@
-"""POST /settings?deviceId=..."""
-
 import json
-from decimal import Decimal, InvalidOperation
+import os
+from decimal import Decimal
 
-from common import authorize_device, read_body, requested_device_id, response, settings_table
+import boto3
 
-ALLOWED = {"autoMode", "minIntervalHours", "wateringDuration", "thresholdMoisture"}
+
+dynamodb = boto3.resource("dynamodb")
+settings_table = dynamodb.Table(os.environ.get("SETTINGS_TABLE", "IrrigationSettings"))
+devices_table = dynamodb.Table(os.environ.get("DEVICES_TABLE", "Devices"))
+device_key_name = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
+allowed_fields = {"autoMode", "minIntervalHours", "wateringDuration", "thresholdMoisture"}
+
+
+def response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
+        "body": json.dumps(body, default=str),
+    }
 
 
 def lambda_handler(event, context):
     try:
-        body = read_body(event)
-    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-        return response(400, {"message": "Request body must be a valid JSON object"})
-    if set(body) - ALLOWED:
-        return response(400, {"message": "Unsupported settings field supplied"})
-    device_id = requested_device_id(event, body)
-    _, error = authorize_device(event, device_id)
-    if error:
-        return error
-    values = {key: value for key, value in body.items() if key in ALLOWED}
+        body = json.loads(event.get("body") or "{}")
+    except (TypeError, json.JSONDecodeError):
+        return response(400, {"message": "Invalid JSON body"})
+    if not isinstance(body, dict):
+        return response(400, {"message": "Body must be a JSON object"})
+
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    user_id = claims.get("sub")
+    params = event.get("queryStringParameters") or {}
+    device_id = str(params.get("deviceId") or body.get("deviceId") or "").strip()
+
+    if not user_id:
+        return response(401, {"message": "Unauthorized"})
+    if not device_id:
+        return response(400, {"message": "deviceId is required"})
+    device = devices_table.get_item(Key={device_key_name: device_id}).get("Item")
+    if not device or device.get("userId") != user_id:
+        return response(404, {"message": "Device not found"})
+
+    values = {key: value for key, value in body.items() if key in allowed_fields}
     if not values:
-        return response(400, {"message": "Provide at least one supported setting"})
-    if "autoMode" in values and not isinstance(values["autoMode"], bool):
-        return response(400, {"message": "autoMode must be true or false"})
-    for key in ALLOWED - {"autoMode"}:
-        if key in values:
+        return response(400, {"message": "No settings were provided"})
+
+    for key, value in values.items():
+        if key == "autoMode":
+            if not isinstance(value, bool):
+                return response(400, {"message": "autoMode must be true or false"})
+        else:
             try:
-                number = Decimal(str(values[key]))
-            except (InvalidOperation, TypeError, ValueError):
+                number = Decimal(str(value))
+            except Exception:
                 return response(400, {"message": f"{key} must be a number"})
-            if not number.is_finite() or number < 0:
-                return response(400, {"message": f"{key} must be a non-negative number"})
+            if number < 0:
+                return response(400, {"message": f"{key} cannot be negative"})
+            if key == "thresholdMoisture" and number > 100:
+                return response(400, {"message": "thresholdMoisture must be between 0 and 100"})
             values[key] = number
-    if "wateringDuration" in values and values["wateringDuration"] <= 0:
-        return response(400, {"message": "wateringDuration must be greater than zero"})
-    if "thresholdMoisture" in values and values["thresholdMoisture"] > 100:
-        return response(400, {"message": "thresholdMoisture must be between 0 and 100"})
 
     names = {f"#f{i}": key for i, key in enumerate(values)}
-    expr_values = {f":v{i}": value for i, value in enumerate(values.values())}
-    assignments = [f"#f{i} = :v{i}" for i in range(len(values))]
-    table = settings_table()
-    result = table.update_item(
+    expression_values = {f":v{i}": value for i, value in enumerate(values.values())}
+    updates = [f"#f{i} = :v{i}" for i in range(len(values))]
+    result = settings_table.update_item(
         Key={"settingId": device_id},
-        UpdateExpression="SET " + ", ".join(assignments),
+        UpdateExpression="SET " + ", ".join(updates),
         ExpressionAttributeNames=names,
-        ExpressionAttributeValues=expr_values,
+        ExpressionAttributeValues=expression_values,
         ReturnValues="ALL_NEW",
     )
-    item = dict(result["Attributes"])
+    item = result.get("Attributes", {})
     item["deviceId"] = device_id
-    return response(200, {"message": "Settings updated", **item})
+    return response(200, item)

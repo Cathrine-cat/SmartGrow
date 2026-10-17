@@ -47,24 +47,17 @@ function ensureSelectedDevice(payload, selectedId) {
   }
 
   const responseDeviceId = itemDeviceId(payload);
-  if (responseDeviceId && responseDeviceId !== selectedId) {
-    throw new Error("The API returned data for a different device.");
-  }
-
   for (const key of ["items", "history", "records", "data"]) {
     if (Array.isArray(payload?.[key])) {
       return {
         ...payload,
-        [key]: payload[key].filter((item) => itemDeviceId(item) === selectedId),
+        [key]: responseDeviceId && responseDeviceId !== selectedId
+          ? []
+          : payload[key].filter((item) => itemDeviceId(item) === selectedId),
       };
     }
   }
-
-  if (!responseDeviceId) {
-    throw new Error("The API response is missing its device ID.");
-  }
-
-  return payload;
+  return responseDeviceId === selectedId ? payload : null;
 }
 
 function limitSeries(payload, limit) {
@@ -156,7 +149,7 @@ function App() {
       const resources = [
         ["latest-data", setSensorData],
         ["history", (value) => setHistory(limitSeries(value, MAX_HISTORY_POINTS))],
-        ["settings", setSettings],
+        ["settings", (value) => setSettings(value || DEFAULT_SETTINGS)],
         ["pumpStatus", setPumpStatus],
         ["watering-history", (value) => setWateringHistory(limitSeries(value, MAX_WATERING_EVENTS))],
       ];
@@ -340,7 +333,6 @@ function App() {
         setManualDuration={setManualDuration}
         pumpStatus={pumpStatus}
         remaining={remaining}
-        dashboardError={dashboardError}
       />
     </section>
   );

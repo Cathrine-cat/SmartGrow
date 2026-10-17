@@ -1,43 +1,36 @@
-"""IoT Rule target for Raspberry Pi telemetry (not an API Gateway route).
+import json
+import os
+from datetime import datetime, timezone
+from decimal import Decimal
 
-Configure the IoT SQL rule to set deviceId from the restricted topic, e.g.:
-SELECT temperature, humidity, soil, light, topic(2) AS deviceId
-FROM 'smart-irrigation/+/telemetry'
-"""
-
-from decimal import Decimal, InvalidOperation
-
-from common import device_exists, put_time_series_item, response, telemetry_table, trusted_device_id
+import boto3
 
 
-def as_number(value, field):
-    try:
-        number = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError):
-        raise ValueError(f"{field} must be numeric")
-    if not number.is_finite():
-        raise ValueError(f"{field} must be finite")
-    return number
+dynamodb = boto3.resource("dynamodb")
+data_table = dynamodb.Table(os.environ.get("TELEMETRY_TABLE", "raspberryData"))
+devices_table = dynamodb.Table(os.environ.get("DEVICES_TABLE", "Devices"))
+device_key_name = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
 
 
 def lambda_handler(event, context):
-    device_id = trusted_device_id(event)
-    if not device_exists(device_id):
-        return response(400, {"message": "Unknown deviceId; check the IoT Rule and Devices registry"})
+    device_id = str(event.get("id") or event.get("deviceId") or "").strip()
+    if not device_id:
+        return {"statusCode": 400, "body": "id is required"}
 
-    try:
-        item = {
-            "id": device_id,
-            "deviceId": device_id,
-            "temperature": as_number(event.get("temperature", 0), "temperature"),
-            "humidity": as_number(event.get("humidity", 0), "humidity"),
-            "soil": as_number(event.get("soil", 0), "soil"),
-            "light": as_number(event.get("light", 0), "light"),
-        }
-    except ValueError as error:
-        return response(400, {"message": str(error)})
+    device = devices_table.get_item(Key={device_key_name: device_id}).get("Item")
+    if not device:
+        return {"statusCode": 404, "body": "Device not found"}
 
-    # The legacy table's base partition key is timestamp. The helper assigns a
-    # unique, sortable timestamp so simultaneous devices cannot overwrite rows.
-    put_time_series_item(telemetry_table(), item)
-    return response(200, {"message": "Telemetry stored", "deviceId": device_id, "timestamp": item["timestamp"]})
+    item = {
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z"),
+        "id": device_id,
+        "temperature": Decimal(str(event.get("temperature", 0))),
+        "humidity": Decimal(str(event.get("humidity", 0))),
+        "soil": Decimal(str(event.get("soil", 0))),
+        "light": Decimal(str(event.get("light", 0))),
+    }
+    data_table.put_item(Item=item)
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"message": "Telemetry saved", "id": device_id, "timestamp": item["timestamp"]}),
+    }

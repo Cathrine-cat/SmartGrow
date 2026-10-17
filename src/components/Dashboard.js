@@ -13,16 +13,9 @@ function Dashboard({ data,
   setManualDuration,
   pumpStatus,
   remaining,
-  dashboardError,
 }) {
-
-  if (!data) {
-    return (
-      <div className="dashboard-loading card" role="status">
-        {dashboardError ? "Sensor readings could not be loaded." : "Loading device data…"}
-      </div>
-    );
-  }
+  const hasSensorValue = data && [data.temperature, data.humidity, data.soil, data.light]
+    .some((value) => value !== null && value !== undefined);
 
   return (
   <div className="dashboard">
@@ -35,10 +28,11 @@ function Dashboard({ data,
       <div className="column">
 
         <div className="card">
-          <p>🌡️ Temperature: {data.temperature} °C</p>
-          <p>💧 Humidity: {data.humidity} %</p>
-          <p>🌱 Soil Moisture: {data.soil}</p>
-          <p>🌞 Light: {data.light}</p>
+          <p>🌡️ Temperature: {data?.temperature ?? "—"} °C</p>
+          <p>💧 Humidity: {data?.humidity ?? "—"} %</p>
+          <p>🌱 Soil Moisture: {data?.soil ?? "—"}</p>
+          <p>🌞 Light: {data?.light ?? "—"}</p>
+          {!hasSensorValue && <small>No sensor readings available yet.</small>}
         </div>
 
         <div className="card">

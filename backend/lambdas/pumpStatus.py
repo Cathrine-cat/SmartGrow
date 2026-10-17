@@ -1,26 +1,34 @@
-"""IoT Rule target for pump status updates (WebSocket broadcast removed)."""
+import json
+import os
+from datetime import datetime, timezone
 
-from common import device_exists, pump_table, response, trusted_device_id, utc_now
+import boto3
+
+
+dynamodb = boto3.resource("dynamodb")
+pump_table = dynamodb.Table(os.environ.get("PUMP_STATUS_TABLE", "pumpStatus"))
+devices_table = dynamodb.Table(os.environ.get("DEVICES_TABLE", "Devices"))
+device_key_name = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
 
 
 def lambda_handler(event, context):
-    device_id = trusted_device_id(event)
-    if not device_exists(device_id):
-        return response(400, {"message": "Unknown deviceId"})
-    status = str(event.get("status", "")).upper()
+    device_id = str(event.get("id") or event.get("deviceId") or "").strip()
+    if not device_id:
+        return {"statusCode": 400, "body": "id is required"}
+    if not devices_table.get_item(Key={device_key_name: device_id}).get("Item"):
+        return {"statusCode": 404, "body": "Device not found"}
+
+    status = str(event.get("status", "OFF")).upper()
     if status not in {"ON", "OFF"}:
-        return response(400, {"message": "status must be ON or OFF"})
-    timestamp = str(event.get("timestamp") or utc_now())
+        return {"statusCode": 400, "body": "status must be ON or OFF"}
+
+    timestamp = event.get("timestamp") or datetime.now(timezone.utc).isoformat()
     item = {
-        # The supplied getStatusData Lambda reads the status table by id.
         "id": device_id,
-        "deviceId": device_id,
         "status": status,
-        "isActuallyOn": status == "ON",
-        "source": str(event.get("source", "unknown")),
+        "source": event.get("source", "unknown"),
         "timestamp": timestamp,
-        "startTime": timestamp,
         "duration": int(event.get("duration", 0) or 0),
     }
-    pump_table().put_item(Item=item)
-    return response(200, {"message": "Pump status updated", "deviceId": device_id, "status": status})
+    pump_table.put_item(Item=item)
+    return {"statusCode": 200, "body": json.dumps({"message": "Pump status saved", **item}, default=str)}

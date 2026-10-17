@@ -1,27 +1,33 @@
-"""IoT Rule target for completed/started watering events (no push notifications)."""
+import json
+import os
+from datetime import datetime, timezone
+from decimal import Decimal
 
-from decimal import Decimal, InvalidOperation
+import boto3
 
-from common import device_exists, put_time_series_item, response, trusted_device_id, watering_table
+
+dynamodb = boto3.resource("dynamodb")
+events_table = dynamodb.Table(os.environ.get("WATERING_EVENTS_TABLE", "wateringEvents"))
+devices_table = dynamodb.Table(os.environ.get("DEVICES_TABLE", "Devices"))
+device_key_name = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
 
 
 def lambda_handler(event, context):
-    device_id = trusted_device_id(event)
-    if not device_exists(device_id):
-        return response(400, {"message": "Unknown deviceId"})
-    try:
-        duration = Decimal(str(event["duration"]))
-    except (KeyError, InvalidOperation, TypeError, ValueError):
-        return response(400, {"message": "duration is required and must be numeric"})
-    if not duration.is_finite() or duration <= 0:
-        return response(400, {"message": "duration must be greater than zero"})
+    device_id = str(event.get("id") or event.get("deviceId") or "").strip()
+    if not device_id:
+        return {"statusCode": 400, "body": "id is required"}
+    if not devices_table.get_item(Key={device_key_name: device_id}).get("Item"):
+        return {"statusCode": 404, "body": "Device not found"}
 
     item = {
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z"),
         "id": device_id,
-        "deviceId": device_id,
-        "source": str(event.get("source", "unknown")),
-        "duration": duration,
         "event": str(event.get("event", "Watering")),
+        "source": str(event.get("source", "unknown")),
+        "duration": Decimal(str(event.get("duration", 0))),
     }
-    put_time_series_item(watering_table(), item)
-    return response(200, {"message": "Watering event stored", "deviceId": device_id, "timestamp": item["timestamp"]})
+    events_table.put_item(Item=item)
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"message": "Watering event saved", "id": device_id, "timestamp": item["timestamp"]}),
+    }

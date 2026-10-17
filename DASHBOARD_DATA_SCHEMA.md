@@ -13,4 +13,4 @@ The time-series tables do not have `id` as a key. This implementation uses a Sca
 
 For existing rows, only set `id` when you know which physical device produced that row. Rows without `id` remain hidden from device-scoped results.
 
-Every user-facing data Lambda checks the Cognito JWT `sub` against the device's `userId` in `Devices`. API Gateway must use the app's JWT authorizer for those routes. The Plant Journal notification badge, `NotificationCond`, and notification endpoints are not part of this change.
+Every user-facing data Lambda checks the Cognito JWT `sub` against the device's `userId` in `Devices`. API Gateway must use the app's JWT authorizer for those routes.
