@@ -14,4 +14,4 @@ Run `npm run build`. The optimized static application is written to `build/`.
 
 ## Backend
 
-The frontend expects the authenticated API routes for user profiles, devices, sensor readings, device history, irrigation settings, pump control, and the plant assistant. See [AUTH_SETUP.md](AUTH_SETUP.md) and [DASHBOARD_DATA_SCHEMA.md](DASHBOARD_DATA_SCHEMA.md) for authentication and device-data details.
+The frontend expects the authenticated API routes for user profiles, devices, sensor readings, device history, irrigation settings, pump control, and the plant assistant. See [AUTH_SETUP.md](AUTH_SETUP.md) and [DASHBOARD_DATA_SCHEMA.md](DASHBOARD_DATA_SCHEMA.md) for authentication and device-data details. [backend/lambdas/AWS_DEPLOYMENT.md](backend/lambdas/AWS_DEPLOYMENT.md) contains the AWS steps for the device-scoped Lambdas.

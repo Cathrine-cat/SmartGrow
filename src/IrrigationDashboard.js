@@ -41,14 +41,12 @@ async function readJson(response) {
 }
 
 function ensureSelectedDevice(payload, selectedId) {
+  const itemDeviceId = (item) => item?.deviceId || item?.device_id || item?.id || item?.settingId;
   if (Array.isArray(payload)) {
-    return payload.filter((item) => {
-      const itemDeviceId = item?.deviceId || item?.device_id;
-      return !itemDeviceId || itemDeviceId === selectedId;
-    });
+    return payload.filter((item) => itemDeviceId(item) === selectedId);
   }
 
-  const responseDeviceId = payload?.deviceId || payload?.device_id;
+  const responseDeviceId = itemDeviceId(payload);
   if (responseDeviceId && responseDeviceId !== selectedId) {
     throw new Error("The API returned data for a different device.");
   }
@@ -57,12 +55,13 @@ function ensureSelectedDevice(payload, selectedId) {
     if (Array.isArray(payload?.[key])) {
       return {
         ...payload,
-        [key]: payload[key].filter((item) => {
-          const itemDeviceId = item?.deviceId || item?.device_id;
-          return !itemDeviceId || itemDeviceId === selectedId;
-        }),
+        [key]: payload[key].filter((item) => itemDeviceId(item) === selectedId),
       };
     }
+  }
+
+  if (!responseDeviceId) {
+    throw new Error("The API response is missing its device ID.");
   }
 
   return payload;

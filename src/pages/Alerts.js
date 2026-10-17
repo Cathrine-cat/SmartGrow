@@ -7,6 +7,7 @@ const EMPTY_RULES = { soilMin: "", soilMax: "", temperatureMin: "", temperatureM
 const deviceIdOf = (device) => typeof device === "string" ? device : device?.deviceId || device?.id || "";
 const deviceNameOf = (device) => typeof device === "string" ? "Unnamed device" : device?.name || device?.Name || "Unnamed device";
 const timeOf = (event) => event.timestamp || event.time || event.createdAt || event.date;
+const rowDeviceId = (item) => item?.deviceId || item?.device_id || item?.id || item?.settingId;
 
 async function readJson(response) {
   const body = await response.json().catch(() => ({}));
@@ -56,9 +57,13 @@ export default function PlantJournal() {
       authorizedFetch(endpoint("devices")).then(readJson),
     ]).then(([latest, history, deviceResponse]) => {
       if (!active) return;
-      if (latest.status === "fulfilled") setReadings(latest.value);
+      if (latest.status === "fulfilled") {
+        if (rowDeviceId(latest.value) === selectedDeviceId) setReadings(latest.value);
+        else setReadings(null);
+      }
       if (history.status === "fulfilled") {
-        const list = Array.isArray(history.value) ? history.value : history.value.items || history.value.history || history.value.records || [];
+        const rows = Array.isArray(history.value) ? history.value : history.value.items || history.value.history || history.value.records || [];
+        const list = rows.filter((item) => rowDeviceId(item) === selectedDeviceId);
         setEvents(list.slice().sort((a, b) => new Date(timeOf(b) || 0) - new Date(timeOf(a) || 0)));
       }
       if (deviceResponse.status === "fulfilled") {

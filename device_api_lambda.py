@@ -1,7 +1,8 @@
 """HTTP API Lambda for listing, claiming, editing, and unlinking devices.
 
 Expected DynamoDB table:
-  * Partition key: deviceId (String)
+  * Partition key: deviceId (String) by default; set DEVICE_TABLE_KEY_NAME=id
+    if the partition key is named id and its value is the device identifier.
   * Attributes: userId (String, absent while unclaimed), passwordHash (String)
   * GSI: UserDevicesIndex, partition key userId (String)
 
@@ -30,6 +31,11 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource("dynamodb")
 devices = dynamodb.Table(os.environ["DEVICES_TABLE"])
 INDEX_NAME = os.environ.get("USER_DEVICES_INDEX", "UserDevicesIndex")
+DEVICE_TABLE_KEY_NAME = os.environ.get("DEVICE_TABLE_KEY_NAME", "deviceId")
+
+
+def device_key(device_id):
+    return {DEVICE_TABLE_KEY_NAME: device_id}
 
 
 def response(status, body):
@@ -132,7 +138,10 @@ def public_device(item):
         "modifiedAt",
         "alertSettings",
     )
-    return {field: item[field] for field in allowed_fields if field in item}
+    result = {field: item[field] for field in allowed_fields if field in item}
+    if not result.get("deviceId"):
+        result["deviceId"] = item.get("id")
+    return result
 
 
 def device_id_from_path(event):
@@ -174,7 +183,7 @@ def lambda_handler(event, context):
             if not requested_id:
                 return response(400, {"message": "deviceId is required"})
             item = devices.get_item(
-                Key={"deviceId": requested_id}, ConsistentRead=True
+                Key=device_key(requested_id), ConsistentRead=True
             ).get("Item")
             available = bool(item and item.get("passwordHash") and not item.get("userId"))
             return response(200, {"exists": available})
@@ -188,7 +197,7 @@ def lambda_handler(event, context):
                 return response(400, {"message": "deviceId and password are required"})
 
             item = devices.get_item(
-                Key={"deviceId": requested_id}, ConsistentRead=True
+                Key=device_key(requested_id), ConsistentRead=True
             ).get("Item")
             if (
                 not item
@@ -203,7 +212,7 @@ def lambda_handler(event, context):
             timestamp = now()
             try:
                 devices.update_item(
-                    Key={"deviceId": requested_id},
+                    Key=device_key(requested_id),
                     UpdateExpression="SET userId = :uid, modifiedAt = :ts",
                     ConditionExpression=(
                         "attribute_not_exists(userId) AND passwordHash = :oldHash"
@@ -234,7 +243,7 @@ def lambda_handler(event, context):
                 return response(400, {"message": "currentPassword is required"})
 
             item = devices.get_item(
-                Key={"deviceId": requested_id}, ConsistentRead=True
+                Key=device_key(requested_id), ConsistentRead=True
             ).get("Item")
             if not item or item.get("userId") != user_id:
                 return response(404, {"message": "Device not found."})
@@ -297,7 +306,7 @@ def lambda_handler(event, context):
                     return response(400, {"message": "New device password cannot be empty."})
 
                 item = devices.get_item(
-                    Key={"deviceId": requested_id}, ConsistentRead=True
+                    Key=device_key(requested_id), ConsistentRead=True
                 ).get("Item")
                 if (
                     not item
@@ -329,7 +338,7 @@ def lambda_handler(event, context):
 
             try:
                 result = devices.update_item(
-                    Key={"deviceId": requested_id},
+                    Key=device_key(requested_id),
                     UpdateExpression="SET " + ", ".join(assignments),
                     ConditionExpression=condition,
                     ExpressionAttributeNames=expression_names,
@@ -353,7 +362,7 @@ def lambda_handler(event, context):
                 return response(400, {"message": "Invalid device ID"})
             try:
                 devices.update_item(
-                    Key={"deviceId": requested_id},
+                    Key=device_key(requested_id),
                     UpdateExpression="SET modifiedAt = :ts REMOVE userId",
                     ConditionExpression="userId = :uid",
                     ExpressionAttributeValues={":uid": user_id, ":ts": now()},

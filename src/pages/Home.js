@@ -4,6 +4,7 @@ import { getDisplayName, useAuth } from "../auth/AuthContext";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
 const deviceIdOf = (device) => typeof device === "string" ? device : device?.deviceId || device?.id || "";
+const rowDeviceId = (item) => item?.deviceId || item?.device_id || item?.id || item?.settingId;
 const deviceNameOf = (device) => typeof device === "string" ? "Unnamed device" : device?.name || device?.Name || "Unnamed device";
 
 export default function Home() {
@@ -47,8 +48,9 @@ export default function Home() {
       authorizedFetch(urlFor("watering-history")).then((response) => response.json()),
     ]).then(([latest, history]) => {
       if (!active) return;
-      setReadings(latest);
-      setWatering(Array.isArray(history) ? history : history.items || history.history || []);
+      setReadings(rowDeviceId(latest) === selectedDeviceId ? latest : null);
+      const rows = Array.isArray(history) ? history : history.items || history.history || [];
+      setWatering(rows.filter((item) => rowDeviceId(item) === selectedDeviceId));
     }).catch(() => { if (active) { setReadings(null); setWatering([]); } })
       .finally(() => { if (active) setDataLoading(false); });
     return () => { active = false; };
