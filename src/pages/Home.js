@@ -83,7 +83,7 @@ export default function Home() {
           <article className="journal-highlight"><div><p className="eyebrow">Recent activity</p><h2>{latestWatering ? "Last watering" : "Your garden journal"}</h2>
             {latestWatering ? <p>{new Date(latestWatering.timestamp || latestWatering.time).toLocaleString()} · {latestWatering.duration ? `${latestWatering.duration}s` : "Watering recorded"}</p> : <p>{devices.length ? "No watering event is recorded yet. Your activity will show here as it happens." : "Add a device to begin recording sensor readings and watering activity."}</p>}
             <Link to="/journal" className="text-link">Open plant journal →</Link></div>
-            <img src="/images/garden-hero.svg" alt="Sunlight falling on a thriving green garden" />
+            <img src="/images/plants_main_page.jpg" alt="Sunlight falling on a thriving green garden" />
           </article>
           <article className="garden-tip"><span className="tip-icon" aria-hidden="true">☀️</span><div><p className="eyebrow">Garden note</p><h2>{readings?.soil != null && Number(readings.soil) < 30 ? "Your soil may be getting dry" : "A little context goes a long way"}</h2><p>{readings?.soil != null && Number(readings.soil) < 30 ? `Soil moisture is ${readings.soil}%. Check the plant and your moisture target before watering.` : "Use sensor readings alongside your plant’s needs. Pot size, sunlight, and growth stage all affect when it’s time to water."}</p></div></article>
         </div>
@@ -103,17 +103,26 @@ export default function Home() {
           <div className="cta-row"><Link to="/login?mode=register" className="btn btn-primary">Get started</Link><Link to="/login" className="btn btn-secondary">Sign in</Link></div>
           <p className="hero-footnote">Less guesswork. Happier plants. 🌱</p>
         </div>
-        <div className="hero-visual"><img src="/images/garden-hero.svg" alt="A lush home garden growing in warm sunlight" /></div>
+        <div className="hero-visual"><img src="/images/plants_main_page.jpg" alt="A lush home garden growing in warm sunlight" /></div>
       </section>
       <section id="features" className="feature-section"><div className="section-heading"><p className="eyebrow">Made for your growing space</p><h2>Everything your garden needs. All in one place.</h2><p>Small, useful details that make plant care feel effortless.</p></div>
         <div className="feature-grid">
-          <article className="feature-card feature-with-image"><img src="/images/devices.svg" alt="A garden sensor connected to SmartGrow" /><div><span className="feature-icon">🪴</span><h3>Your devices, together</h3><p>Manage every garden sensor from one cozy corner.</p></div></article>
-          <article className="feature-card feature-with-image"><img src="/images/readings.svg" alt="A chart showing changing garden sensor readings" /><div><span className="feature-icon">📈</span><h3>See what’s changing</h3><p>Explore soil, light, and temperature at a glance.</p></div></article>
-          <article className="feature-card feature-with-image"><img src="/images/watering.svg" alt="A plant getting a refreshing watering" /><div><span className="feature-icon">💧</span><h3>Water in real time</h3><p>Give thirsty plants a drink, wherever you are.</p></div></article>
-          <article className="feature-card feature-with-image"><img src="/images/sprout.svg" alt="A cheerful new sprout reaching for the sun" /><div><span className="feature-icon">🌵</span><h3>Ask Sprout</h3><p>Your plant-loving AI sidekick, ready with a little guidance.</p></div></article>
+          <article className="feature-card feature-with-image"><img src="/images/devices_image.png" alt="A garden sensor connected to SmartGrow" /><div><span className="feature-icon">🪴</span><h3>Your devices, together</h3><p>Manage every garden sensor from one cozy corner.</p></div></article>
+          <article className="feature-card feature-with-image"><img src="/images/graphs.png" alt="A chart showing changing garden sensor readings" /><div><span className="feature-icon">📈</span><h3>See what’s changing</h3><p>Explore soil, light, and temperature at a glance.</p></div></article>
+          <article className="feature-card feature-with-image"><img src="/images/watering.jpg" alt="A plant getting a refreshing watering" /><div><span className="feature-icon">💧</span><h3>Water in real time</h3><p>Give thirsty plants a drink, wherever you are.</p></div></article>
+          <article className="feature-card feature-with-image"><img src="/images/cactus.jpg" alt="A cheerful new sprout reaching for the sun" /><div><span className="feature-icon">🌵</span><h3>Ask Sprout</h3><p>Your plant-loving AI sidekick, ready with a little guidance.</p></div></article>
         </div>
       </section>
-      <section id="how-it-works" className="how-section"><div><p className="eyebrow">How it works</p><h2>From sensor to happy plant.</h2><p>Connect your garden, get a clearer picture, and care with confidence.</p></div><div className="diagram-placeholder"><span>🌱</span><strong>Your garden’s journey</strong><p>Sensor → SmartGrow → Your next good decision</p><small>Place your how-it-works diagram here</small></div></section>
+      <section id="how-it-works" className="how-section">
+        <div>
+          <p className="eyebrow">How it works</p>
+          <h2>From sensor to happy plant.</h2>
+          <p>Connect your garden, get a clearer picture, and care with confidence.</p>
+        </div>
+        <div className="diagram-placeholder">
+          <img src="/images/how_it_works.png" alt="Your garden’s journey: Sensor → Device → Data proccessed → SmartGrow → Actions" />
+        </div>
+      </section>
       <footer className="site-footer"><span>SmartGrow · A little care goes a long way.</span><Link to="/login">Come on in →</Link></footer>
     </main>
   );
