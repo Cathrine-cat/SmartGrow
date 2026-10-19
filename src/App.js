@@ -11,6 +11,7 @@ import ProtectedLayout from "./auth/ProtectedLayout";
 import IrrigationDashboard from "./IrrigationDashboard";
 import PlantJournal from "./pages/Alerts";
 import PlantAssistant from "./pages/PlantAssistant";
+import Notifications from "./pages/Notifications";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/journal" element={<PlantJournal />} />
             <Route path="/alerts" element={<PlantJournal />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/assistant" element={<PlantAssistant />} />
           </Route>
         </Route>

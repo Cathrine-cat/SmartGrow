@@ -1190,6 +1190,12 @@ button:hover {
   background: #fffafa;
 }
 
+.journal-device-picker {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 20px;
+}
+
 @media (max-width: 900px) {
   .hero-section { gap: 34px; }
   .feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }

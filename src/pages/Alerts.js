@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import NotificationsPanel from "../components/NotificationsPanel";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
 const EMPTY_RULES = { soilMin: "", soilMax: "", temperatureMin: "", temperatureMax: "" };
 const deviceIdOf = (device) => typeof device === "string" ? device : device?.deviceId || device?.id || "";
 const deviceNameOf = (device) => typeof device === "string" ? "Unnamed device" : device?.name || device?.Name || "Unnamed device";
+const notificationDeviceIdOf = (notification) => notification?.deviceId || notification?.device_id || notification?.id || "";
 const timeOf = (event) => event.timestamp || event.time || event.createdAt || event.date;
 const rowDeviceId = (item) => item?.deviceId || item?.device_id || item?.id || item?.settingId;
 
@@ -139,7 +141,22 @@ export default function PlantJournal() {
     } finally { setSaving(false); }
   }
 
+  async function markNotificationRead(notification) {
+    try {
+      await readJson(await authorizedFetch(
+        `${API_BASE_URL}/notifications/${encodeURIComponent(notification.notificationId)}/read`,
+        { method: "PATCH" }
+      ));
+      await loadNotifications();
+    } catch (readError) {
+      setError(readError.message);
+    }
+  }
+
   const selectedDevice = devices.find((device) => deviceIdOf(device) === selectedDeviceId);
+  const selectedNotifications = notifications.filter(
+    (notification) => notificationDeviceIdOf(notification) === selectedDeviceId
+  );
   const currentAlerts = [
     ["Soil moisture", readings?.soil, rules.soilMin, rules.soilMax, "%"],
     ["Temperature", readings?.temperature, rules.temperatureMin, rules.temperatureMax, "°C"],
@@ -152,10 +169,20 @@ export default function PlantJournal() {
   });
 
   return <section className="content-page journal-page">
-    <div className="page-header"><div><p className="eyebrow">Your garden’s memory</p><h1>Plant journal</h1><p className="journal-intro">A device-by-device record of watering, changing conditions, and the things you want to watch.</p></div>
-      {devices.length > 0 && <label className="dashboard-device-select"><span>Choose a device</span><select value={selectedDeviceId || ""} onChange={(event) => selectDevice(event.target.value)}>{devices.map((device) => <option key={deviceIdOf(device)} value={deviceIdOf(device)}>{deviceNameOf(device)}</option>)}</select></label>}
-    </div>
+    <div className="page-header"><div><p className="eyebrow">Your garden’s memory</p><h1>Plant journal</h1><p className="journal-intro">A device-by-device record of watering, changing conditions, and the things you want to watch.</p></div></div>
     {error && <p className="error-box" role="alert">{error}</p>}{message && <p className="success-text" role="status">{message}</p>}
+
+    {devices.length > 0 && (
+      <div className="journal-device-picker">
+        <label className="dashboard-device-select">
+          <span>Choose a device</span>
+          <select value={selectedDeviceId || ""} onChange={(event) => selectDevice(event.target.value)}>
+            {devices.map((device) => <option key={deviceIdOf(device)} value={deviceIdOf(device)}>{deviceNameOf(device)}</option>)}
+          </select>
+        </label>
+      </div>
+    )}
+
     {loading ? <div className="info-panel"><p>Loading your garden journal…</p></div> : !devices.length ? <div className="info-panel"><h2>Start your garden story</h2><p>Link a sensor to see readings, watering activity, and set the conditions you want to keep an eye on.</p><Link to="/devices" className="btn btn-primary">Add a device</Link></div> : <>
       <div className="journal-summary">
         <div>
@@ -172,82 +199,14 @@ export default function PlantJournal() {
             </div>
           </div>
 
+      <NotificationsPanel
+        notifications={selectedNotifications}
+        unreadCount={selectedNotifications.length}
+        devices={devices}
+        onMarkRead={markNotificationRead}
+      />
+
       
-
-
-<section className="info-panel notification-panel">
-  <div className="notification-heading">
-    <div>
-      <p className="eyebrow">Sensor notifications</p>
-      <h2>Things to check</h2>
-    </div>
-
-    {unreadCount > 0 && (
-      <span className="notification-count">
-        {unreadCount} new
-      </span>
-    )}
-  </div>
-
-  {notifications.length === 0 ? (
-    <p>No notifications yet. We'll let you know when a configured condition is met.</p>
-  ) : (
-    <ul className="notification-list">
-      {notifications.map((item) => (
-        <li
-          key={item.notificationId}
-          className={item.read ? "notification-item" : "notification-item unread"}
-        >
-          <div className="notification-icon" aria-hidden="true">
-            {item.type?.includes("TEMPERATURE") ? "🌡️" : "💧"}
-          </div>
-
-          <div className="notification-content">
-            <strong>{item.message}</strong>
-            <p>
-              {item.deviceId} ·{" "}
-              {item.createdAt
-                ? new Date(item.createdAt).toLocaleString()
-                : "Time unavailable"}
-            </p>
-            <small>
-              Recorded value: {item.value}
-              {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
-              {" · Threshold: "}
-              {item.threshold}
-              {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
-            </small>
-
-            {!item.read && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await readJson(
-                      await authorizedFetch(
-                        `${API_BASE_URL}/notifications/${encodeURIComponent(item.notificationId)}/read`,
-                        { method: "PATCH" }
-                      )
-                    );
-                    await loadNotifications();
-                  } catch (error) {
-                    setError(error.message);
-                  }
-                }}
-              >
-                Mark as read
-              </button>
-            )}
-          </div>
-
-          {!item.read && (
-            <span className="notification-unread-dot" aria-label="Unread" />
-          )}
-        </li>
-      ))}
-    </ul>
-  )}
-</section>
 
 
       <div className="journal-columns">

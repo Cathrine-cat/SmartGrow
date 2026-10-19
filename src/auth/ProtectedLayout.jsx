@@ -13,6 +13,7 @@ export default function ProtectedLayout() {
     { to: "/devices", label: "Devices" },
     { to: "/profile", label: "Profile" },
     { to: "/journal", label: "Plant journal" },
+    { to: "/notifications", label: "Notifications" },
     { to: "/assistant", label: "🌵 Sprout" },
   ];
 
@@ -35,7 +36,7 @@ export default function ProtectedLayout() {
               }
             >
               <span>{item.label}</span>
-              {item.to === "/journal" && unreadCount > 0 && (
+              {item.to === "/notifications" && unreadCount > 0 && (
                 <span
                   className="nav-notification-dot"
                   aria-label={`${unreadCount} unread notifications`}
