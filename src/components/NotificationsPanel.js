@@ -8,6 +8,17 @@ function notificationDeviceName(notification, devices) {
   return device ? deviceNameOf(device) : notification?.deviceName || notification?.device_name || deviceId || "Unknown device";
 }
 
+function notificationTitle(notification) {
+  const type = String(notification.type || "").toUpperCase();
+  const message = String(notification.message || "");
+  const isTemperature = type.includes("TEMPERATURE") || /temperature/i.test(message);
+  const value = notification.value;
+  if (value === undefined || value === null || value === "") {
+    return message || "Sensor condition detected";
+  }
+  return `${isTemperature ? "Temperature" : "Soil moisture"}: ${value}${isTemperature ? "°C" : "%"}`;
+}
+
 export default function NotificationsPanel({ notifications, unreadCount, devices = [], onMarkRead }) {
   return (
     <section className="info-panel notification-panel">
@@ -33,18 +44,14 @@ export default function NotificationsPanel({ notifications, unreadCount, devices
               </div>
 
               <div className="notification-content">
-                <strong>{item.message}</strong>
+                <strong>{notificationTitle(item)}</strong>
                 <p>
                   {notificationDeviceName(item, devices)} · {item.createdAt
                     ? new Date(item.createdAt).toLocaleString()
                     : "Time unavailable"}
                 </p>
                 <small>
-                  Recorded value: {item.value}
-                  {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
-                  {" · Threshold: "}
-                  {item.threshold}
-                  {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
+                  Configured threshold: {item.threshold}{item.type?.includes("TEMPERATURE") ? "°C" : "%"}
                 </small>
 
                 {!item.read && onMarkRead && (
