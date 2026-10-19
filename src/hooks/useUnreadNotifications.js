@@ -29,7 +29,12 @@ export default function useUnreadNotifications() {
       }
 
       const body = await response.json();
-      setUnreadCount(Number(body.unreadCount) || 0);
+      if (Array.isArray(body.notifications)) {
+        const unread = body.notifications.filter((item) => item.read !== true && item.read !== "true");
+        setUnreadCount(unread.length);
+      } else {
+        setUnreadCount(Number(body.unreadCount) || 0);
+      }
     } catch (error) {
       console.error("Notification count error:", error);
     }

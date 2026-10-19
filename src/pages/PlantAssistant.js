@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://n6pf7o109j.execute-api.eu-north-1.amazonaws.com";
@@ -28,7 +27,7 @@ export default function PlantAssistant() {
   const [latestData, setLatestData] = useState(null);
   const [messages, setMessages] = useState([{
     role: "assistant",
-    content: "Hi! Tell me what plant you’re growing and what you’re noticing. I can use the selected device’s latest readings to help with watering and plant care.",
+    content: "Hi! Tell me what plant you’re growing and what you’re noticing. I can answer general plant-care questions, and use your selected device’s readings when available.",
   }]);
   const [input, setInput] = useState("");
   const [loadingDevices, setLoadingDevices] = useState(true);
@@ -95,10 +94,6 @@ export default function PlantAssistant() {
     event.preventDefault();
     const question = input.trim();
     if (!question || sending) return;
-    if (!selectedDeviceId) {
-      setError("Link and select a device before asking about its readings.");
-      return;
-    }
 
     const conversation = [...messages, { role: "user", content: question }].slice(-MAX_VISIBLE_MESSAGES);
     setMessages(conversation);
@@ -107,23 +102,25 @@ export default function PlantAssistant() {
     setSending(true);
 
     try {
+      const requestBody = {
+        messages: conversation.slice(-MAX_CONTEXT_MESSAGES),
+        plantContext: {
+          deviceName: selectedDevice ? deviceNameOf(selectedDevice) : "",
+          readings: selectedDeviceId && latestData ? {
+            temperature: latestData.temperature,
+            humidity: latestData.humidity,
+            soilMoisture: latestData.soil,
+            light: latestData.light,
+            timestamp: latestData.timestamp,
+          } : null,
+        },
+      };
+      if (selectedDeviceId) requestBody.deviceId = selectedDeviceId;
+
       const response = await authorizedFetch(CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: conversation.slice(-MAX_CONTEXT_MESSAGES),
-          deviceId: selectedDeviceId,
-          plantContext: {
-            deviceName: selectedDevice ? deviceNameOf(selectedDevice) : "",
-            readings: latestData ? {
-              temperature: latestData.temperature,
-              humidity: latestData.humidity,
-              soilMoisture: latestData.soil,
-              light: latestData.light,
-              timestamp: latestData.timestamp,
-            } : null,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
       const body = await readJson(response);
       if (typeof body.reply !== "string" || !body.reply.trim()) {
@@ -157,16 +154,11 @@ export default function PlantAssistant() {
 
       {error && <p className="error-box" role="alert">{error}</p>}
 
-      {loadingDevices ? <div className="info-panel"><p>Loading devices…</p></div> : !devices.length ? (
-        <div className="info-panel">
-          <p>Link a device to ask questions using its latest readings.</p>
-          <Link to="/devices" className="btn btn-primary">Go to devices</Link>
-        </div>
-      ) : (
+      {loadingDevices ? <div className="info-panel"><p>Loading devices…</p></div> : (
         <div className="assistant-panel">
           <div className="assistant-context" aria-live="polite">
-            <strong>{selectedDevice ? deviceNameOf(selectedDevice) : "Choose a device"}</strong>
-            <span>{loadingReadings ? "Loading latest readings…" : latestData ? `Soil ${latestData.soil ?? "—"}% · ${latestData.temperature ?? "—"}°C · Humidity ${latestData.humidity ?? "—"}%` : "No current readings available"}</span>
+            <strong>{selectedDevice ? deviceNameOf(selectedDevice) : "General plant care"}</strong>
+            <span>{!selectedDeviceId ? "Chatting without sensor readings. Link a device any time for sensor-aware advice." : loadingReadings ? "Loading latest readings…" : latestData ? `Soil ${latestData.soil ?? "—"}% · ${latestData.temperature ?? "—"}°C · Humidity ${latestData.humidity ?? "—"}%` : "No current readings available"}</span>
           </div>
           <div className="assistant-messages" aria-live="polite" aria-label="Conversation">
             {messages.map((message, index) => (
@@ -186,11 +178,11 @@ export default function PlantAssistant() {
               placeholder="What plant are you growing, and what would you like help with?"
               maxLength={1000}
               rows={3}
-              disabled={sending || !selectedDeviceId}
+              disabled={sending}
             />
             <div className="assistant-composer-footer">
               <span>{input.length}/1000</span>
-              <button type="submit" className="submit-button" disabled={sending || !input.trim() || !selectedDeviceId}>
+              <button type="submit" className="submit-button" disabled={sending || !input.trim()}>
                 {sending ? "Sending…" : "Ask assistant"}
               </button>
             </div>

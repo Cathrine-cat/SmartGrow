@@ -15,6 +15,13 @@ async function readJson(response) {
   return body;
 }
 
+function setNotificationData(body, setNotifications, setUnreadCount) {
+  const rows = Array.isArray(body.notifications) ? body.notifications : [];
+  const unread = rows.filter((item) => item.read !== true && item.read !== "true");
+  setNotifications(unread);
+  setUnreadCount(Array.isArray(body.notifications) ? unread.length : Number(body.unreadCount) || 0);
+}
+
 export default function PlantJournal() {
   const { selectedDeviceId, selectDevice, getAccessToken } = useAuth();
   const [devices, setDevices] = useState([]);
@@ -39,8 +46,7 @@ export default function PlantJournal() {
     const body = await readJson(
       await authorizedFetch(`${API_BASE_URL}/notifications`)
     );
-    setNotifications(Array.isArray(body.notifications) ? body.notifications : []);
-    setUnreadCount(Number(body.unreadCount) || 0);
+    setNotificationData(body, setNotifications, setUnreadCount);
   }, [authorizedFetch]);
 
   useEffect(() => {
@@ -68,10 +74,7 @@ export default function PlantJournal() {
 
       if (!active) return;
 
-      setNotifications(
-        Array.isArray(body.notifications) ? body.notifications : []
-      );
-      setUnreadCount(Number(body.unreadCount) || 0);
+      setNotificationData(body, setNotifications, setUnreadCount);
     } catch (error) {
       if (active) {
         console.error("Unable to load notifications:", error);
