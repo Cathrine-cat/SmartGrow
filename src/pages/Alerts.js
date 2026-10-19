@@ -51,27 +51,31 @@ export default function PlantJournal() {
     let active = true;
     const endpoint = (path) => { const url = new URL(`${API_BASE_URL}/${path}`); url.searchParams.set("deviceId", selectedDeviceId); return url.toString(); };
     setError("");
+    setReadings(null);
+    setEvents([]);
+    setRules(EMPTY_RULES);
+
+    const refreshReadings = () => authorizedFetch(endpoint("latest-data")).then(readJson).then((reading) => {
+      if (active) setReadings(rowDeviceId(reading) === selectedDeviceId ? reading : null);
+    }).catch((loadError) => { if (active) setError(loadError.message); });
+
     Promise.allSettled([
-      authorizedFetch(endpoint("latest-data")).then(readJson),
+      refreshReadings(),
       authorizedFetch(endpoint("watering-history")).then(readJson),
-      authorizedFetch(endpoint("devices")).then(readJson),
-    ]).then(([latest, history, deviceResponse]) => {
+      authorizedFetch(endpoint("notification-conditions")).then(readJson),
+    ]).then(([, history, conditionResponse]) => {
       if (!active) return;
-      if (latest.status === "fulfilled") {
-        if (rowDeviceId(latest.value) === selectedDeviceId) setReadings(latest.value);
-        else setReadings(null);
-      }
       if (history.status === "fulfilled") {
         const rows = Array.isArray(history.value) ? history.value : history.value.items || history.value.history || history.value.records || [];
         const list = rows.filter((item) => rowDeviceId(item) === selectedDeviceId);
         setEvents(list.slice().sort((a, b) => new Date(timeOf(b) || 0) - new Date(timeOf(a) || 0)));
       }
-      if (deviceResponse.status === "fulfilled") {
-        const device = (deviceResponse.value.devices || []).find((item) => deviceIdOf(item) === selectedDeviceId);
-        setRules({ ...EMPTY_RULES, ...(device?.alertSettings || {}) });
-      }
+      if (conditionResponse.status === "fulfilled") setRules({ ...EMPTY_RULES, ...(conditionResponse.value.conditions || {}) });
+      else setError(conditionResponse.reason?.message || "Could not load alert conditions.");
     });
-    return () => { active = false; };
+    const readingInterval = setInterval(refreshReadings, 10000);
+
+    return () => { active = false; clearInterval(readingInterval); };
   }, [authorizedFetch, selectedDeviceId]);
 
   async function saveJournal(event) {
@@ -79,13 +83,13 @@ export default function PlantJournal() {
     if (!selectedDeviceId) return;
     setSaving(true); setError(""); setMessage("");
     try {
-      await readJson(await authorizedFetch(`${API_BASE_URL}/devices/${encodeURIComponent(selectedDeviceId)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertSettings: rules }),
+      await readJson(await authorizedFetch(`${API_BASE_URL}/notification-conditions?deviceId=${encodeURIComponent(selectedDeviceId)}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rules),
       }));
-      setMessage("Journal settings saved for this device.");
+      setMessage("Alert conditions saved for this device.");
     } catch (saveError) {
-      setError(`${saveError.message} Deploy the updated device API to enable saved journal settings.`);
+      setError(saveError.message);
     } finally { setSaving(false); }
   }
 
@@ -141,7 +145,7 @@ export default function PlantJournal() {
       <section className="info-panel journal-settings">
         <p className="eyebrow">A gentle nudge</p>
         <h2>What should we watch for?</h2>
-        <p>Set device-specific limits for soil moisture and temperature. When readings cross a limit, the journal will flag them here.</p>
+        <p>Set device-specific limits for soil moisture and temperature. Readings refresh every 10 seconds while this page is open.</p>
         {currentAlerts.length > 0 && 
         <div className="journal-alerts" role="status">{currentAlerts.map((alert) => <p key={alert}>🔔 {alert}</p>)}</div>}
         <form onSubmit={saveJournal} className="journal-form">

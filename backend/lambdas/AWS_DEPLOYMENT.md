@@ -10,6 +10,7 @@ It keeps your current tables and keys. It adds no DynamoDB indexes or tables. Ro
 | `wateringEvents` | `timestamp` | Scan rows and keep `id == deviceId` |
 | `pumpStatus` | `id` | Read/write by device ID |
 | `IrrigationSettings` | `settingId` | Read/write by device ID |
+| `NotificationCond` | `id` | Read/write alert thresholds by device ID |
 
 ## Do these AWS steps
 
@@ -19,7 +20,7 @@ In **DynamoDB → Tables**, make sure the table keys above match. In `raspberryD
 
 ### 2. Upload the Lambda ZIP
 
-Open **Lambda → Functions → [function] → Code → Upload from → .zip file**. Upload [device-lambdas.zip](device-lambdas.zip) to each function below. Under **Runtime settings**, set its handler as shown:
+Open **Lambda → Functions → [function] → Code → Upload from → .zip file**. Upload [device-lambdas.zip](device-lambdas.zip) to each existing function below. Under **Runtime settings**, set its handler as shown:
 
 | Function | Handler |
 | --- | --- |
@@ -36,6 +37,8 @@ Open **Lambda → Functions → [function] → Code → Upload from → .zip fil
 | `autoWatering` | `autoWatering.lambda_handler` |
 
 Use Python 3.12. Each Lambda is a separate Python file in the ZIP; there is no shared helper to copy or configure.
+
+For the two new alert functions, create a ZIP per function containing its single `.py` file at the ZIP root. Upload `getNotificationConditions.py` to the first function and `updateNotificationConditions.py` to the second; set each handler as listed in step 5. The Lambda Python runtime includes `boto3`.
 
 ### 3. Set the device table name and key
 
@@ -68,6 +71,8 @@ In **Lambda → Configuration → Permissions → Execution role**, add these Dy
 | `storeWateringEvent` | `PutItem` on `wateringEvents` |
 | `pumpStatus` | `PutItem` on `pumpStatus` |
 | `autoWatering` | `GetItem` on `IrrigationSettings`; `Scan` on `raspberryData` and `wateringEvents` |
+| `getNotificationConditions` | `GetItem` on `NotificationCond` |
+| `updateNotificationConditions` | `PutItem` on `NotificationCond` |
 
 For the two history tables, the permission is `Scan` on the table itself. No GSI or index permission is needed. Scans inspect the table before filtering, so they are simple but become less efficient as the tables grow.
 
@@ -84,13 +89,17 @@ Keep the existing HTTP API routes and connect them to these functions:
 | `POST /settings` | `updateSettings` |
 | `GET /pumpStatus` | `getStatusData` |
 | `POST /control` | `controlPump` |
+| `GET /notification-conditions` | `getNotificationConditions` |
+| `PUT /notification-conditions` | `updateNotificationConditions` |
 
 Each browser request already includes `?deviceId=...` and its sign-in token. In **API Gateway → your HTTP API → Routes**, set the Cognito JWT authorizer on each route. Use your app's Cognito user pool as issuer and its app client as audience. In **CORS**, allow your web app's URL, `GET, POST, PATCH, DELETE, OPTIONS`, and `Authorization, Content-Type`. Save and deploy the stage if auto-deploy is off.
 
 Keep your existing `/devices` route. If your `Devices` table uses key `id`, use the optional device API ZIP from step 3 so the device list and device reads use the same key.
 
+For alert thresholds, create the two functions with handlers `getNotificationConditions.lambda_handler` and `updateNotificationConditions.lambda_handler`. Set `NOTIFICATION_COND_TABLE=NotificationCond`, `DEVICES_TABLE`, and `DEVICE_TABLE_KEY_NAME` on both. Grant each function `GetItem` on `Devices` and `NotificationCond`; grant `PutItem` on `NotificationCond` to `updateNotificationConditions`. Create the two routes above and attach the same Cognito JWT authorizer used by the other device routes. The table item stores `id` plus any configured `soilMin`, `soilMax`, `temperatureMin`, and `temperatureMax` values. Clearing a field removes it from the stored item.
+
 ### 6. Rebuild the web app
 
 The app already sends the selected device ID. If the API URL changed, set `REACT_APP_API_BASE_URL` to the API Gateway invoke URL, then run `npm run build` and deploy the `build` folder.
 
-Rows without `id` will not appear, but they will not cause an error. If one data route has no matching rows, the rest of the dashboard still appears. IoT Core setup and Plant Journal notifications are not part of these steps.
+Rows without `id` will not appear, but they will not cause an error. If one data route has no matching rows, the rest of the dashboard still appears. These alert conditions are evaluated by the web app against the latest reading while the Alerts page is open; they do not send email, SMS, or push notifications.
