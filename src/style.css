@@ -304,6 +304,7 @@ input {
 .menu-link {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 12px;
   color: var(--neutral-700);
@@ -1086,6 +1087,108 @@ button:hover {
 .settings-save-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-top: 3px; }
 .settings-save-row > span { color: var(--neutral-500); font-size: .8rem; }
 .settings-save-row button { padding: 11px 17px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+/* Navigation notification badge */
+.nav-notification-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Plant Journal notifications */
+.notification-panel {
+  margin-bottom: 24px;
+}
+
+.notification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.notification-count {
+  background: #fff0f0;
+  color: #b42332;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #e7e9e4;
+}
+
+.notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #f0f4ec;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-content p {
+  margin: 6px 0;
+  color: #68746b;
+  font-size: 13px;
+}
+
+.notification-content small {
+  color: #68746b;
+  font-size: 12px;
+}
+
+.notification-content button {
+  display: block;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #386b42;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notification-unread-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #dc3545;
+  flex-shrink: 0;
+}
+
+.notification-item.unread {
+  background: #fffafa;
+}
 
 @media (max-width: 900px) {
   .hero-section { gap: 34px; }

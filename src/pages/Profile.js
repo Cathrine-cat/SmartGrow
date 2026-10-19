@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { callingCodes, splitE164Phone, toE164Phone } from "../utils/phone";
 import useDeviceCount from "../hooks/useDeviceCount";
+import useUnreadNotifications from "../hooks/useUnreadNotifications";
 
 const emptyState = {
   name: "",
@@ -11,6 +12,7 @@ const emptyState = {
 
 export default function Profile() {
   const deviceCount = useDeviceCount();
+  const { unreadCount } = useUnreadNotifications();
   const { user, updateProfile, refreshProfile } = useAuth();
   const [form, setForm] = useState(emptyState);
   const [phoneCountryCode, setPhoneCountryCode] = useState("+40");

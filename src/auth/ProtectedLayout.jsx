@@ -1,9 +1,11 @@
 
 import { NavLink, Outlet } from "react-router-dom";
 import { getDisplayName, useAuth } from "./AuthContext";
+import useUnreadNotifications from "../hooks/useUnreadNotifications";
 
 export default function ProtectedLayout() {
   const { user, logout } = useAuth();
+  const { unreadCount } = useUnreadNotifications();
 
   const menuItems = [
     { to: "/app", label: "Home" },
@@ -32,7 +34,15 @@ export default function ProtectedLayout() {
                 isActive ? "menu-link active" : "menu-link"
               }
             >
-              {item.label}
+              <span>{item.label}</span>
+              {item.to === "/journal" && unreadCount > 0 && (
+                <span
+                  className="nav-notification-dot"
+                  aria-label={`${unreadCount} unread notifications`}
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

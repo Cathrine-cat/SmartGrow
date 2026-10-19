@@ -25,6 +25,8 @@ export default function PlantJournal() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const authorizedFetch = useCallback(async (url, options = {}) => {
     const token = await getAccessToken();
@@ -32,6 +34,14 @@ export default function PlantJournal() {
     headers.set("Authorization", `Bearer ${token}`);
     return fetch(url, { ...options, headers });
   }, [getAccessToken]);
+
+  const loadNotifications = useCallback(async () => {
+    const body = await readJson(
+      await authorizedFetch(`${API_BASE_URL}/notifications`)
+    );
+    setNotifications(Array.isArray(body.notifications) ? body.notifications : []);
+    setUnreadCount(Number(body.unreadCount) || 0);
+  }, [authorizedFetch]);
 
   useEffect(() => {
     let active = true;
@@ -45,6 +55,39 @@ export default function PlantJournal() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [authorizedFetch, selectDevice]);
+
+
+  useEffect(() => {
+  let active = true;
+
+  const refresh = async () => {
+    try {
+      const body = await readJson(
+        await authorizedFetch(`${API_BASE_URL}/notifications`)
+      );
+
+      if (!active) return;
+
+      setNotifications(
+        Array.isArray(body.notifications) ? body.notifications : []
+      );
+      setUnreadCount(Number(body.unreadCount) || 0);
+    } catch (error) {
+      if (active) {
+        console.error("Unable to load notifications:", error);
+      }
+    }
+  };
+
+  refresh();
+
+  const interval = setInterval(refresh, 15000);
+
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
+}, [authorizedFetch]);
 
   useEffect(() => {
     if (!selectedDeviceId) { setReadings(null); setEvents([]); setRules(EMPTY_RULES); return undefined; }
@@ -125,6 +168,85 @@ export default function PlantJournal() {
             <strong>{events.length}</strong>
             </div>
           </div>
+
+      
+
+
+<section className="info-panel notification-panel">
+  <div className="notification-heading">
+    <div>
+      <p className="eyebrow">Sensor notifications</p>
+      <h2>Things to check</h2>
+    </div>
+
+    {unreadCount > 0 && (
+      <span className="notification-count">
+        {unreadCount} new
+      </span>
+    )}
+  </div>
+
+  {notifications.length === 0 ? (
+    <p>No notifications yet. We'll let you know when a configured condition is met.</p>
+  ) : (
+    <ul className="notification-list">
+      {notifications.map((item) => (
+        <li
+          key={item.notificationId}
+          className={item.read ? "notification-item" : "notification-item unread"}
+        >
+          <div className="notification-icon" aria-hidden="true">
+            {item.type?.includes("TEMPERATURE") ? "🌡️" : "💧"}
+          </div>
+
+          <div className="notification-content">
+            <strong>{item.message}</strong>
+            <p>
+              {item.deviceId} ·{" "}
+              {item.createdAt
+                ? new Date(item.createdAt).toLocaleString()
+                : "Time unavailable"}
+            </p>
+            <small>
+              Recorded value: {item.value}
+              {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
+              {" · Threshold: "}
+              {item.threshold}
+              {item.type?.includes("TEMPERATURE") ? "°C" : "%"}
+            </small>
+
+            {!item.read && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await readJson(
+                      await authorizedFetch(
+                        `${API_BASE_URL}/notifications/${encodeURIComponent(item.notificationId)}/read`,
+                        { method: "PATCH" }
+                      )
+                    );
+                    await loadNotifications();
+                  } catch (error) {
+                    setError(error.message);
+                  }
+                }}
+              >
+                Mark as read
+              </button>
+            )}
+          </div>
+
+          {!item.read && (
+            <span className="notification-unread-dot" aria-label="Unread" />
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+</section>
+
+
       <div className="journal-columns">
         <section className="info-panel journal-timeline">
           <p className="eyebrow">Recent activity</p>
